@@ -1,0 +1,118 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <!-- Header -->
+  <div class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="px-4 py-4">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-bold text-gray-900">Consignações</h1>
+        <button
+          (click)="navigateToNew()"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+        >
+          Nova consignação
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        <button
+          (click)="applyFilter('all')"
+          [class]="currentFilter() === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors"
+        >
+          Todas
+        </button>
+        <button
+          (click)="applyFilter('open')"
+          [class]="currentFilter() === 'open' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors"
+        >
+          Em aberto
+        </button>
+        <button
+          (click)="applyFilter('sold')"
+          [class]="currentFilter() === 'sold' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors"
+        >
+          Vendidas
+        </button>
+        <button
+          (click)="applyFilter('returned')"
+          [class]="currentFilter() === 'returned' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors"
+        >
+          Devolvidas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="p-4">
+    <div class="animate-pulse space-y-4">
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading() && filteredConsignations().length === 0" class="p-4">
+    <app-empty-state
+      icon="📦"
+      title="Nenhuma consignação encontrada"
+      [description]="currentFilter() === 'all' ? 'Comece criando sua primeira consignação' : 'Não há consignações com este status'"
+    >
+      <button
+        *ngIf="currentFilter() === 'all'"
+        (click)="navigateToNew()"
+        class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+      >
+        Nova consignação
+      </button>
+      <button
+        *ngIf="currentFilter() !== 'all'"
+        (click)="applyFilter('all')"
+        class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+      >
+        Ver todas
+      </button>
+    </app-empty-state>
+  </div>
+
+  <!-- Lista -->
+  <div *ngIf="!isLoading() && filteredConsignations().length > 0" class="p-4 space-y-3">
+    <div
+      *ngFor="let item of filteredConsignations()"
+      (click)="navigateToDetail(item.id)"
+      class="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+    >
+      <!-- Header do Card -->
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-semibold text-gray-900">{{ item.clientName }}</h3>
+            <app-score-badge *ngIf="item.clientScore !== undefined" [score]="item.clientScore" />
+          </div>
+        </div>
+        <span
+          [class]="getStatusClass(item.status)"
+          class="px-2 py-1 rounded-full text-xs font-medium"
+        >
+          {{ getStatusLabel(item.status) }}
+        </span>
+      </div>
+
+      <!-- Produto -->
+      <div class="mb-2">
+        <p class="text-gray-900 font-medium">{{ item.productName }}</p>
+        <p class="text-blue-600 font-semibold">{{ formatCurrency(item.productPrice) }}</p>
+      </div>
+
+      <!-- Status temporal -->
+      <div class="text-sm text-gray-600">
+        <span *ngIf="item.status === 'open'">Aberta há {{ item.daysOpen }} {{ item.daysOpen === 1 ? 'dia' : 'dias' }}</span>
+        <span *ngIf="item.status !== 'open'">Fechada ({{ item.daysOpen }} {{ item.daysOpen === 1 ? 'dia' : 'dias' }} de duração)</span>
+      </div>
+    </div>
+  </div>
+</div>

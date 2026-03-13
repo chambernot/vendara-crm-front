@@ -1,0 +1,176 @@
+<div class="min-h-screen bg-slate-50 p-4 md:p-6">
+  <!-- Header -->
+  <header class="mb-6">
+    <h1 class="text-xl font-semibold text-slate-900 mb-1">Hoje</h1>
+    <p class="text-sm text-slate-500">Quem devo chamar agora</p>
+  </header>
+
+  <!-- Main content grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    
+    <!-- Section 1: Quem compra hoje -->
+    <app-section-card 
+      title="Quem compra hoje" 
+      subtitle="Clientes com maior probabilidade de compra">
+      
+      <div *ngIf="clientsToBuy().length > 0; else emptyClientsToBuy">
+        <div 
+          *ngFor="let client of clientsToBuy(); trackBy: trackByClientId"
+          class="border-b border-slate-100 last:border-0 py-3 first:pt-0 last:pb-0">
+          
+          <!-- Name and Score -->
+          <div class="flex items-start justify-between mb-2">
+            <button 
+              (click)="navigateToClient(client.id)"
+              class="text-base font-medium text-slate-900 hover:text-blue-600 transition-colors text-left">
+              {{ client.name }}
+            </button>
+            <app-score-badge [score]="client.score"></app-score-badge>
+          </div>
+          
+          <!-- Last contact -->
+          <p class="text-xs text-slate-500 mb-1">
+            Último contato: {{ client.lastContactDays }} 
+            {{ client.lastContactDays === 1 ? 'dia' : 'dias' }} atrás
+          </p>
+          
+          <!-- Message snippet -->
+          <p class="text-sm text-slate-600 mb-3 italic">
+            "{{ client.lastMessageSnippet }}"
+          </p>
+          
+          <!-- Action button -->
+          <button 
+            (click)="onWhatsAppCall(client.id)"
+            class="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+            type="button">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+            Chamar no WhatsApp
+          </button>
+        </div>
+      </div>
+
+      <ng-template #emptyClientsToBuy>
+        <app-empty-state 
+          title="Nenhum cliente no momento"
+          description="Não há clientes com alta probabilidade de compra hoje.">
+        </app-empty-state>
+      </ng-template>
+    </app-section-card>
+
+    <!-- Section 2: Precisa de follow-up -->
+    <app-section-card 
+      title="Precisa de follow-up" 
+      subtitle="Clientes que precisam de atenção">
+      
+      <div *ngIf="followUpClients().length > 0; else emptyFollowUp">
+        <div 
+          *ngFor="let client of followUpClients(); trackBy: trackByClientId"
+          class="border-b border-slate-100 last:border-0 py-3 first:pt-0 last:pb-0">
+          
+          <!-- Name -->
+          <button 
+            (click)="navigateToClient(client.id)"
+            class="text-base font-medium text-slate-900 hover:text-blue-600 transition-colors mb-1 text-left block">
+            {{ client.name }}
+          </button>
+          
+          <!-- Reason -->
+          <div class="flex items-center gap-2 mb-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+              {{ client.reason }}
+            </span>
+            <span class="text-xs text-slate-500">
+              há {{ client.days }} {{ client.days === 1 ? 'dia' : 'dias' }}
+            </span>
+          </div>
+          
+          <!-- Action button -->
+          <button 
+            (click)="onSendFollowUp(client.name)"
+            class="w-full mt-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+            type="button">
+            Enviar follow-up
+          </button>
+        </div>
+      </div>
+
+      <ng-template #emptyFollowUp>
+        <app-empty-state 
+          title="Tudo em dia"
+          description="Não há clientes precisando de follow-up no momento.">
+        </app-empty-state>
+      </ng-template>
+    </app-section-card>
+
+
+    <!-- Section 3: Peças paradas -->
+    <app-section-card 
+      title="Peças paradas" 
+      subtitle="Produtos sem movimentação">
+      <div class="flex items-center gap-2 mb-2">
+        <label for="staleDays" class="text-xs text-slate-500">Dias:</label>
+        <select id="staleDays" class="border rounded px-2 py-1 text-xs" [value]="staleDays()" (change)="onStaleDaysChange($event)">
+          <option [value]="30">30 dias</option>
+          <option [value]="45">45 dias</option>
+          <option [value]="60">60 dias</option>
+        </select>
+      </div>
+
+      <div *ngIf="staleLoading()">
+        <div class="animate-pulse space-y-2">
+          <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+          <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+          <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+        </div>
+      </div>
+
+      <div *ngIf="staleError()">
+        <div class="text-red-600 text-sm mb-2">{{ staleError() }}</div>
+        <button (click)="loadStaleProducts()" class="px-3 py-1 bg-blue-600 text-white rounded text-xs">Tentar novamente</button>
+      </div>
+
+      <div *ngIf="!staleLoading() && !staleError() && staleProducts().length === 0">
+        <app-empty-state 
+          title="Nenhuma peça parada"
+          description="Todos os produtos estão com boa movimentação.">
+        </app-empty-state>
+      </div>
+
+      <div *ngIf="!staleLoading() && !staleError() && staleProducts().length > 0">
+        <div *ngFor="let product of staleProducts().slice(0,3); trackBy: trackByProductId" class="border-b border-slate-100 last:border-0 py-3 first:pt-0 last:pb-0 flex items-center gap-3">
+          <div>
+            <img *ngIf="product.photoUrl" [src]="product.photoUrl" alt="Foto" class="w-10 h-10 rounded object-cover" />
+            <div *ngIf="!product.photoUrl" class="w-10 h-10 bg-slate-200 rounded flex items-center justify-center">
+              <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-slate-900 truncate">{{ product.name }}</span>
+              <span *ngIf="product.staleReason === 'never_moved'" class="ml-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">Nunca vendeu</span>
+              <span *ngIf="product.staleReason === 'no_sales_30d' || product.staleReason === 'no_movement_30d'" class="ml-1 px-2 py-0.5 rounded bg-slate-100 text-slate-800 text-xs">Sem movimento</span>
+            </div>
+            <div class="text-xs text-slate-600 truncate">
+              Parado há {{ product.daysStale }} dias
+              <span *ngIf="product.quantity != null">| Qtd: {{ product.quantity }}</span>
+            </div>
+            <div class="text-xs text-slate-500">
+              <span *ngIf="product.lastMovementAt; else nuncaMovimentado">
+                Última movimentação: {{ product.lastMovementAt | date:'dd/MM/yyyy' }}
+              </span>
+              <ng-template #nuncaMovimentado>Nunca movimentado</ng-template>
+            </div>
+          </div>
+          <button (click)="navigateToProduct(product.productId)" class="px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-md transition-colors">Abrir</button>
+        </div>
+        <div *ngIf="staleProducts().length > 3" class="mt-2 text-right">
+          <span class="text-xs text-blue-600 cursor-pointer hover:underline">Ver mais</span>
+        </div>
+      </div>
+    </app-section-card>
+
+  </div>
+</div>

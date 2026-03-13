@@ -1,0 +1,110 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 py-4">
+      <h1 class="text-2xl font-bold text-gray-900">Métricas (Local)</h1>
+      <p class="text-sm text-gray-600 mt-1">Telemetria armazenada localmente neste dispositivo</p>
+    </div>
+  </div>
+
+  <div class="p-4 space-y-4">
+    @if (loading()) {
+      <div class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    } @else {
+      <!-- Summary Card -->
+      <div class="bg-white rounded-lg shadow p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">Resumo (últimos 7 dias)</h2>
+          <span class="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">
+            {{ summary().total }} eventos
+          </span>
+        </div>
+
+        @if (summary().total === 0) {
+          <p class="text-gray-500 text-center py-8">Nenhum evento registrado nos últimos 7 dias</p>
+        } @else {
+          <!-- Events by Type -->
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-700 mb-3">Por tipo de evento</h3>
+            @for (item of summary().byType.slice(0, 8); track item.type) {
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">{{ getEventIcon(item.type) }}</span>
+                  <span class="text-sm text-gray-700">{{ getEventLabel(item.type) }}</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900">{{ item.count }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Latest Events -->
+      @if (summary().lastEvents.length > 0) {
+        <div class="bg-white rounded-lg shadow p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-gray-900">Últimos eventos</h2>
+          <div class="space-y-2">
+            @for (event of summary().lastEvents; track event.id) {
+              <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <span class="text-xl">{{ getEventIcon(event.type) }}</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900">{{ getEventLabel(event.type) }}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">{{ formatDate(event.at) }}</p>
+                  @if (event.meta && Object.keys(event.meta).length > 0) {
+                    <div class="mt-1 flex flex-wrap gap-1">
+                      @for (key of Object.keys(event.meta); track key) {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                          {{ key }}: {{ event.meta[key] }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="bg-white rounded-lg shadow p-6 space-y-3">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Ações</h2>
+        
+        <button
+          (click)="exportMetrics()"
+          class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Exportar eventos (JSON)
+        </button>
+
+        <button
+          (click)="clearMetrics()"
+          class="w-full px-4 py-3 bg-white text-red-600 border-2 border-red-600 rounded-lg hover:bg-red-50 font-medium flex items-center justify-center gap-2 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Limpar todos os eventos
+        </button>
+      </div>
+
+      <!-- Info -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex gap-3">
+          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-sm text-blue-800">
+            <p class="font-medium mb-1">Telemetria Local</p>
+            <p>Os dados de telemetria são armazenados apenas neste dispositivo e por workspace. Nenhuma informação é enviada para servidores externos. Os eventos incluem apenas ações e IDs internos, sem dados sensíveis.</p>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

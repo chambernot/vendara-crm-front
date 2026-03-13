@@ -1,0 +1,231 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Mensagens</h1>
+        <p class="text-sm text-gray-600 mt-1">Visualize e gerencie todas as mensagens enviadas e recebidas</p>
+      </div>
+      <button
+        (click)="openComposer()"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow"
+        type="button"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+        Nova Mensagem
+      </button>
+    </div>
+  </div>
+
+  <div class="p-4 space-y-4">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-600">Total</div>
+        <div class="text-2xl font-bold text-gray-900 mt-1">{{ stats().total }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-600">Enviadas</div>
+        <div class="text-2xl font-bold text-blue-600 mt-1">{{ stats().outbound }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-600">Recebidas</div>
+        <div class="text-2xl font-bold text-green-600 mt-1">{{ stats().inbound }}</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-sm text-gray-600">Falharam</div>
+        <div class="text-2xl font-bold text-red-600 mt-1">{{ stats().failed }}</div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="relative">
+      <input
+        type="text"
+        placeholder="Buscar por texto, cliente ou ID..."
+        [value]="searchTerm()"
+        (input)="onSearchChange($event)"
+        class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+      <svg class="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+
+    <!-- Filters -->
+    <div class="space-y-3">
+      <!-- Status Filter Chips -->
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        @for (option of statusOptions; track option.value) {
+          <button
+            (click)="onStatusChange(option.value)"
+            [class]="selectedStatus() === option.value ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300'"
+            class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors hover:shadow-sm"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Direction & Provider Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label for="direction-filter" class="block text-sm font-medium text-gray-700 mb-1">Direção</label>
+          <select
+            id="direction-filter"
+            [value]="selectedDirection()"
+            (change)="onDirectionChange($event)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            @for (option of directionOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="provider-filter" class="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+          <select
+            id="provider-filter"
+            [value]="selectedProvider()"
+            (change)="onProviderChange($event)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            @for (option of providerOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Date Range Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label for="start-date" class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+          <input
+            type="date"
+            id="start-date"
+            [value]="startDate()"
+            (change)="onStartDateChange($event)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label for="end-date" class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+          <input
+            type="date"
+            id="end-date"
+            [value]="endDate()"
+            (change)="onEndDateChange($event)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      <!-- Clear Filters Button -->
+      @if (searchTerm() || selectedStatus() !== 'all' || selectedDirection() !== 'all' || selectedProvider() !== 'all' || startDate() || endDate() || filterByClientId()) {
+        <button
+          (click)="clearFilters()"
+          class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+        >
+          🔄 Limpar Filtros
+        </button>
+      }
+    </div>
+
+    <!-- Messages List -->
+    @if (allMessages().length === 0) {
+      <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">💬</div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma mensagem ainda</h3>
+        <p class="text-gray-600">As mensagens enviadas e recebidas aparecerão aqui</p>
+      </div>
+    } @else if (filteredMessages().length === 0) {
+      <div class="bg-white rounded-lg shadow p-12 text-center">
+        <div class="text-6xl mb-4">🔍</div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma mensagem encontrada</h3>
+        <p class="text-gray-600">Tente ajustar os filtros de busca</p>
+      </div>
+    } @else {
+      <div class="space-y-3">
+        @for (message of filteredMessages(); track trackByMessageId($index, message)) {
+          <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4">
+            <div class="flex items-start justify-between gap-4 mb-3">
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span
+                  class="text-xl"
+                  [title]="getDirectionLabel(message.direction)"
+                >
+                  {{ getDirectionIcon(message.direction) }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-gray-900 truncate">
+                    {{ getClientName(message.clientId) }}
+                  </div>
+                  <div class="text-xs text-gray-500 flex items-center gap-2">
+                    <span class="font-medium text-purple-600">{{ getProviderLabel(message.provider) }}</span>
+                    <span>•</span>
+                    <span>{{ message.channel }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span 
+                  [class]="getStatusClass(message.status) + ' px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1'"
+                  [class.animate-pulse]="message.status === 'queued' || message.status === 'intent'"
+                >
+                  <span>{{ getStatusIcon(message.status) }}</span>
+                  <span>{{ getStatusLabel(message.status) }}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <p class="text-gray-700 line-clamp-2">{{ interpolateMessageText(message.textPreview, message.clientId) }}</p>
+              @if (message.failureReason) {
+                <div class="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 flex items-center gap-1">
+                  <span>⚠️</span>
+                  <span>Erro: {{ message.failureReason }}</span>
+                </div>
+              }
+            </div>
+
+            @if (message.templateId) {
+              <div class="mb-3">
+                <span class="inline-flex items-center gap-1 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                  </svg>
+                  Template: {{ message.templateId }}
+                </span>
+              </div>
+            }
+
+            <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+              <span>{{ formatDate(message.createdAt) }}</span>
+              <span class="font-mono">{{ message.id }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Results count -->
+      <div class="text-center text-sm text-gray-600 py-4">
+        {{ filteredMessages().length }} {{ filteredMessages().length === 1 ? 'mensagem encontrada' : 'mensagens encontradas' }}
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Composer Modal (modo livre) -->
+@if (isComposerOpen()) {
+  <app-message-composer
+    [isOpen]="isComposerOpen()"
+    [context]="composerContext()"
+    (closed)="onComposerClosed()"
+    (sent)="onComposerSent($event)"
+  />
+}

@@ -1,0 +1,893 @@
+<div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="bg-white rounded-lg shadow p-6 text-center">
+      <p class="text-gray-500">Carregando detalhes do cliente...</p>
+    </div>
+  }
+
+  <!-- Not Found State -->
+  @if (notFound() && !loading()) {
+    <app-empty-state
+      icon="❌"
+      title="Cliente não encontrado"
+      description="O cliente que você procura não existe ou foi removido."
+    />
+    <div class="mt-4 text-center">
+      <button
+        (click)="goBack()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Voltar para Clientes
+      </button>
+    </div>
+  }
+
+  <!-- Main Content -->
+  @if (clientDetail() && !loading()) {
+    <!-- Back Button -->
+    <div class="mb-4 flex items-center justify-between">
+      <button
+        (click)="goBack()"
+        class="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+      >
+        <span>←</span>
+        <span>Voltar</span>
+      </button>
+
+      <!-- Edit Mode Toggle Buttons -->
+      @if (!isEditMode()) {
+        <button
+          (click)="enterEditMode()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+        >
+          <span>✏️</span>
+          <span>Editar</span>
+        </button>
+      } @else {
+        <div class="flex gap-2">
+          <button
+            (click)="cancelEdit()"
+            [disabled]="isSaving()"
+            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancelar
+          </button>
+          <button
+            (click)="saveClient()"
+            [disabled]="isSaving()"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSaving()) {
+              <span class="animate-spin">⏳</span>
+              <span>Salvando...</span>
+            } @else {
+              <span>💾</span>
+              <span>Salvar</span>
+            }
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Validation Error -->
+    @if (validationError()) {
+      <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-700 font-medium flex items-start gap-2">
+          <span class="text-lg">❌</span>
+          <span>{{ validationError() }}</span>
+        </p>
+      </div>
+    }
+
+    <!-- Header: Name + Score -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <!-- View Mode -->
+      @if (!isEditMode()) {
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              {{ clientDetail()!.client.name }}
+            </h1>
+            @if (clientDetail()!.client.whatsapp) {
+              <p class="text-sm text-gray-600">
+                {{ clientDetail()!.client.whatsapp }}
+              </p>
+            }
+          </div>
+          <app-score-badge [score]="clientDetail()!.client.score" />
+        </div>
+      } @else {
+        <!-- Edit Mode -->
+        <form [formGroup]="editForm" class="space-y-4">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1 space-y-4">
+              <!-- Name Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Nome <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  placeholder="Nome do cliente"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [class.border-red-500]="editForm.get('name')?.invalid && editForm.get('name')?.touched"
+                />
+                @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
+                  <p class="text-xs text-red-600 mt-1">Nome é obrigatório (mínimo 2 caracteres)</p>
+                }
+              </div>
+
+              <!-- WhatsApp Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  WhatsApp <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  formControlName="whatsapp"
+                  placeholder="+55 11 99999-9999"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [class.border-red-500]="editForm.get('whatsapp')?.invalid && editForm.get('whatsapp')?.touched"
+                />
+                @if (editForm.get('whatsapp')?.invalid && editForm.get('whatsapp')?.touched) {
+                  <p class="text-xs text-red-600 mt-1">WhatsApp é obrigatório</p>
+                }
+              </div>
+            </div>
+            <app-score-badge [score]="clientDetail()!.client.score" />
+          </div>
+
+          <!-- Notes Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Observações
+            </label>
+            <textarea
+              formControlName="notes"
+              placeholder="Observações sobre o cliente..."
+              rows="3"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Last Contact Date Input -->
+          <div>
+            <label for="lastContactAt" class="block text-sm font-medium text-gray-700 mb-1">
+              Data do último contato
+            </label>
+            <input
+              id="lastContactAt"
+              type="date"
+              formControlName="lastContactAt"
+              title="Data do último contato"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <!-- WhatsApp Opt-in Toggle -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex-1">
+              <p class="font-medium text-gray-900">Autorização WhatsApp</p>
+              <p class="text-sm text-gray-600 mt-1">
+                Cliente consentiu em receber mensagens
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="editForm.patchValue({ whatsappOptIn: !editForm.get('whatsappOptIn')?.value })"
+              [class]="editForm.get('whatsappOptIn')?.value ? 'bg-green-500' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              [title]="editForm.get('whatsappOptIn')?.value ? 'Desativar autorização' : 'Ativar autorização'"
+              [attr.aria-label]="editForm.get('whatsappOptIn')?.value ? 'Desativar autorização do WhatsApp' : 'Ativar autorização do WhatsApp'"
+            >
+              <span class="sr-only">Alternar autorização do WhatsApp</span>
+              <span
+                [class]="editForm.get('whatsappOptIn')?.value ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              ></span>
+            </button>
+          </div>
+        </form>
+      }
+
+      <!-- Tags (View Mode) -->
+      @if (!isEditMode()) {
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Tags:</span>
+            <button
+              (click)="addTag()"
+              class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              🏷️ Gerenciar Tags
+            </button>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            @for (tagSlug of clientDetail()!.client.tags; track tagSlug) {
+              @if (getTagDefinition(tagSlug); as tagDef) {
+                <span [class]="tagDef.color" class="px-3 py-1 text-sm font-medium rounded-full border-2 flex items-center gap-2">
+                  {{ tagDef.label }}
+                  <span class="text-xs opacity-75">
+                    ({{ tagDef.scoreImpact > 0 ? '+' : '' }}{{ tagDef.scoreImpact }})
+                  </span>
+                </span>
+              } @else {
+                <!-- Fallback para tags antigas sem definição -->
+                <span class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 rounded-full border-2 border-gray-300">
+                  {{ tagSlug }}
+                </span>
+              }
+            }
+            @if (clientDetail()!.client.tags.length === 0) {
+              <span class="text-sm text-gray-500 italic">Nenhuma tag aplicada</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Tags (Edit Mode) -->
+      @if (isEditMode()) {
+        <div class="mb-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-sm font-medium text-gray-700">Tags:</span>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            @for (tag of getCurrentTags(); track tag) {
+              @if (getTagDefinition(tag); as tagDef) {
+                <span [class]="tagDef.color" class="px-3 py-1 text-sm font-medium rounded-full border-2 flex items-center gap-2">
+                  {{ tagDef.label }}
+                  <span class="text-xs opacity-75">
+                    ({{ tagDef.scoreImpact > 0 ? '+' : '' }}{{ tagDef.scoreImpact }})
+            <!-- Tag Selector Modal -->
+            <app-tag-selector-modal
+              [isOpen]="isTagSelectorModalOpen()"
+              [appliedTags]="clientDetail()?.client?.tags || []"
+              (closed)="closeTagSelectorModal()"
+              (tagSelected)="onTagSelected($event)"
+            />
+                  </span>
+                  <button
+                    type="button"
+                    (click)="removeTagFromClient(tag)"
+                    class="hover:opacity-75 font-bold text-lg leading-none"
+                    title="Remover tag"
+                  >
+                    ×
+                  </button>
+                </span>
+              } @else {
+                <span class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 rounded-full border-2 border-gray-300 flex items-center gap-2">
+                  {{ tag }}
+                  <button
+                    type="button"
+                    (click)="removeTagFromClient(tag)"
+                    class="hover:opacity-75 font-bold text-lg leading-none"
+                    title="Remover tag"
+                  >
+                    ×
+                  </button>
+                </span>
+              }
+            }
+            @if (getCurrentTags().length === 0) {
+              <span class="text-sm text-gray-500 italic">Nenhuma tag</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Quick Actions (View Mode Only) -->
+      @if (!isEditMode()) {
+        <div class="flex flex-wrap gap-3">
+          <button
+            (click)="openMessageComposer()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            📱 Nova mensagem
+          </button>
+          <button
+            (click)="openWhatsApp()"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            💬 WhatsApp Web
+          </button>
+          <button
+            (click)="registerSale()"
+            [disabled]="false"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            💰 Registrar Venda
+          </button>
+          <button
+            (click)="addTag()"
+            [disabled]="!clientDetail()?.client?.id"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            🏷️ Adicionar Tag
+          </button>
+          <button
+            (click)="simulateInboundMessage()"
+            [disabled]="!clientDetail()?.client?.id"
+            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Simula uma resposta do cliente (para testar engajamento no score)"
+          >
+            🧪 Simular Resposta
+          </button>
+        </div>
+
+        <!-- Message ID Display -->
+        @if (lastMessageId()) {
+          <div class="mt-4 px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-700 font-medium mb-1">✅ Última mensagem enviada</p>
+            <p class="text-xs text-green-600 font-mono">ID: {{ lastMessageId() }}</p>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- WhatsApp Compliance Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">📱 WhatsApp - Compliance</h2>
+      
+      <!-- Opt-in Toggle -->
+      <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3">
+        <div class="flex-1">
+          <p class="font-medium text-gray-900">Autorizou receber mensagens no WhatsApp</p>
+          <p class="text-sm text-gray-600 mt-1">
+            Cliente consentiu em receber mensagens via WhatsApp
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="toggleWhatsAppOptIn()"
+          [class]="clientDetail()!.client.whatsappOptIn ? 'bg-green-500' : 'bg-gray-300'"
+          class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-label="Alternar autorização do WhatsApp"
+          aria-checked="false"
+          [attr.aria-checked]="clientDetail()!.client.whatsappOptIn ? 'true' : 'false'"
+          [title]="clientDetail()!.client.whatsappOptIn ? 'Desativar autorização do WhatsApp' : 'Ativar autorização do WhatsApp'"
+          role="switch"
+        >
+          <span class="sr-only">Alternar autorização do WhatsApp</span>
+          <span
+            [class]="clientDetail()!.client.whatsappOptIn ? 'translate-x-5' : 'translate-x-0'"
+            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+          ></span>
+        </button>
+      </div>
+
+      <!-- Opt-in Status Info -->
+      @if (clientDetail()!.client.whatsappOptIn) {
+        <div class="px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-start gap-2">
+            <span class="text-green-600 text-lg">✓</span>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-green-800">Cliente autorizado</p>
+              @if (clientDetail()!.client.whatsappOptInAt) {
+                <p class="text-xs text-green-600 mt-1">
+                  Autorizou em: {{ formatDate(clientDetail()!.client.whatsappOptInAt!) }}
+                </p>
+              }
+              @if (clientDetail()!.client.lastInboundAt) {
+                <p class="text-xs text-green-600">
+                  Última mensagem recebida: {{ formatDate(clientDetail()!.client.lastInboundAt!) }}
+                </p>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div class="flex items-start gap-2">
+            <span class="text-yellow-600 text-lg">⚠️</span>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-yellow-800">Cliente não autorizou</p>
+              <p class="text-xs text-yellow-600 mt-1">
+                Não é possível enviar mensagens pelo WhatsApp sem autorização do cliente.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- AI Suggestions Section -->
+    <app-section-card title="💡 Sugestões da IA" [class]="'mb-4'">
+      <!-- Success/Error Messages -->
+      @if (suggestionSuccess()) {
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p class="text-sm text-green-800">{{ suggestionSuccess() }}</p>
+        </div>
+      }
+      @if (suggestionError()) {
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800">{{ suggestionError() }}</p>
+        </div>
+      }
+
+      @if (clientDetail()!.suggestions.length === 0) {
+        <p class="text-gray-500 text-sm">Nenhuma sugestão disponível no momento.</p>
+      } @else {
+        <div class="space-y-3">
+          @for (suggestion of clientDetail()!.suggestions; track suggestion.id) {
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-start justify-between mb-2">
+                <h4 class="font-semibold text-gray-900">{{ suggestion.title }}</h4>
+                <span
+                  [class]="getPriorityColor(suggestion.priority)"
+                  class="px-2 py-1 text-xs font-medium rounded"
+                >
+                  {{ getPriorityLabel(suggestion.priority) }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600 mb-3">{{ suggestion.reason }}</p>
+              <button
+                (click)="applySuggestion(suggestion.id)"
+                [disabled]="applyingSuggestion() === suggestion.id"
+                class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                @if (applyingSuggestion() === suggestion.id) {
+                  <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Aplicando...</span>
+                } @else {
+                  <span>Aplicar</span>
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </app-section-card>
+
+    <!-- Score Breakdown (from API) -->
+    <app-section-card title="🎯 Por que esse score?" [class]="'mb-4'">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b">
+          <span class="text-sm font-medium text-gray-700">Score Calculado:</span>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-bold text-gray-900">{{ clientDetail()!.client.score }}</span>
+            @if (clientDetail()!.client.scoreLabel) {
+              <span [class]="'px-3 py-1 text-sm font-semibold rounded-full ' + getScoreClassForLabel(clientDetail()!.client.scoreLabel!)">
+                {{ clientDetail()!.client.scoreLabel }}
+              </span>
+            } @else {
+              <span [class]="'px-3 py-1 text-sm font-semibold rounded-full ' + getScoreClassForValue(clientDetail()!.client.score)">
+                {{ getScoreLabelForValue(clientDetail()!.client.score) }}
+              </span>
+            }
+          </div>
+        </div>
+        @if (clientDetail()!.client.scoreBreakdown && clientDetail()!.client.scoreBreakdown!.length > 0) {
+          @for (item of clientDetail()!.client.scoreBreakdown; track $index) {
+            <div class="flex items-start justify-between py-2 border-b border-gray-100 last:border-0">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">
+                  {{ item.label }}
+                </p>
+                @if (item.detail) {
+                  <p class="text-xs text-gray-500 mt-0.5">{{ item.detail }}</p>
+                }
+              </div>
+              <span
+                [class]="'ml-3 px-2 py-1 text-sm font-semibold rounded ' + (item.points > 0 ? 'bg-green-100 text-green-800' : item.points < 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800')"
+              >
+                {{ item.points > 0 ? '+' : '' }}{{ item.points }}
+              </span>
+            </div>
+          }
+        } @else {
+          <p class="text-sm text-gray-500">Score calculado no backend. Aguardando dados...</p>
+        }
+        <div class="mt-3 pt-3 border-t text-xs text-gray-500">
+          <p>💡 O score é calculado automaticamente no backend considerando:</p>
+          <ul class="mt-1 ml-4 space-y-0.5">
+            <li>• Base inicial</li>
+            <li>• Tags aplicadas</li>
+            <li>• Recência do último contato</li>
+            <li>• Engajamento (cliente respondeu)</li>
+            <li>• Compras recentes</li>
+            <li>• Penalidades (anti-spam, falhas de envio)</li>
+          </ul>
+          <p class="mt-1">Adicione/remova tags, envie mensagens ou registre vendas para ajustar o score automaticamente.</p>
+        </div>
+      </div>
+    </app-section-card>
+
+    <!-- Summary Section -->
+    <app-section-card title="📊 Resumo" [class]="'mb-4'">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Lifetime Value -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-1">Valor Total Comprado</p>
+          <p class="text-2xl font-bold text-gray-900">
+            {{ formatCurrency(clientDetail()!.insight.lifetimeValue) }}
+          </p>
+        </div>
+
+        <!-- Days Since Last Contact -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-1">Último Contato</p>
+          <p class="text-2xl font-bold text-gray-900">
+            há {{ clientDetail()!.insight.daysSinceLastContact }} dia(s)
+          </p>
+          @if (clientDetail()!.client.lastContactAt) {
+            <p class="text-xs text-gray-500 mt-1">
+              {{ formatDate(clientDetail()!.client.lastContactAt) }}
+            </p>
+          }
+        </div>
+
+        <!-- Last Outbound (Sent) -->
+        @if (clientDetail()!.client.lastOutboundAt) {
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <p class="text-sm text-blue-600 mb-1">📤 Última Saída (enviado)</p>
+            <p class="text-lg font-semibold text-gray-900">
+              {{ formatDate(clientDetail()!.client.lastOutboundAt!) }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ getDaysAgo(clientDetail()!.client.lastOutboundAt!) }}
+            </p>
+          </div>
+        }
+
+        <!-- Last Inbound (Received) -->
+        @if (clientDetail()!.client.lastInboundAt) {
+          <div class="bg-green-50 p-4 rounded-lg">
+            <p class="text-sm text-green-600 mb-1">📥 Última Entrada (resposta)</p>
+            <p class="text-lg font-semibold text-gray-900">
+              {{ formatDate(clientDetail()!.client.lastInboundAt!) }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ getDaysAgo(clientDetail()!.client.lastInboundAt!) }}
+            </p>
+          </div>
+        }
+
+        <!-- Last Purchase -->
+        @if (clientDetail()!.insight.lastPurchaseAt) {
+          <div class="bg-gray-50 p-4 rounded-lg sm:col-span-2">
+            <p class="text-sm text-gray-600 mb-1">Última Compra</p>
+            <p class="text-lg font-semibold text-gray-900">
+              {{ formatDate(clientDetail()!.insight.lastPurchaseAt!) }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ getDaysAgo(clientDetail()!.insight.lastPurchaseAt!) }}
+            </p>
+          </div>
+        }
+
+        <!-- Last Message -->
+        <div class="bg-gray-50 p-4 rounded-lg sm:col-span-2">
+          <p class="text-sm text-gray-600 mb-1">Última Mensagem</p>
+          <p class="text-sm text-gray-700 italic">
+            "{{ clientDetail()!.insight.lastMessageSnippet }}"
+          </p>
+        </div>
+      </div>
+    </app-section-card>
+
+    <!-- Recent Activity Section -->
+    <app-section-card title="📝 Atividade Recente" [class]="'mb-4'">
+      @if (clientDetail()!.recentActivity.length === 0) {
+        <app-empty-state
+          icon="📭"
+          title="Nenhuma atividade registrada"
+          description="Ainda não há atividades para este cliente."
+        />
+      } @else {
+        <div class="space-y-3">
+          @for (activity of clientDetail()!.recentActivity; track activity.id) {
+            <div class="border-l-4 pl-4 py-2" 
+                 [class]="getActivityBorderColor(activity.type)">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">
+                    <span [innerHTML]="getActivityIcon(activity.type)"></span>
+                    {{ activity.text }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">{{ formatDate(activity.createdAt) }}</p>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </app-section-card>
+
+    <!-- Messages Section -->
+    <app-section-card title="💬 Mensagens" [class]="'mb-4'" id="messages">
+      <!-- Filtros -->
+      <div class="mb-4 flex gap-2 overflow-x-auto pb-2">
+        <button
+          (click)="setMessageFilter('all')"
+          [class]="messageFilter() === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors hover:shadow-sm"
+        >
+          Todas
+        </button>
+        <button
+          (click)="setMessageFilter('sent')"
+          [class]="messageFilter() === 'sent' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors hover:shadow-sm"
+        >
+          Enviadas
+        </button>
+        <button
+          (click)="setMessageFilter('received')"
+          [class]="messageFilter() === 'received' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors hover:shadow-sm"
+        >
+          Recebidas
+        </button>
+        <button
+          (click)="setMessageFilter('failed')"
+          [class]="messageFilter() === 'failed' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'"
+          class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors hover:shadow-sm"
+        >
+          Falhas
+        </button>
+      </div>
+
+      @if (clientMessages().length === 0) {
+        <div class="text-center py-8">
+          <div class="text-4xl mb-2">💬</div>
+          <p class="text-gray-500 text-sm">
+            @if (messageFilter() === 'all') {
+              Nenhuma mensagem enviada ainda
+            } @else {
+              Nenhuma mensagem encontrada com este filtro
+            }
+          </p>
+        </div>
+      } @else {
+        <div class="space-y-3">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-gray-600">
+              {{ clientMessages().length }} mensagem{{ clientMessages().length !== 1 ? 's' : '' }}
+            </p>
+            <a 
+              routerLink="/app/mensagens" 
+              [queryParams]="{clientId: clientDetail()!.client.id}"
+              class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Ver todas →
+            </a>
+          </div>
+          
+          <!-- Timeline -->
+          <div class="relative border-l-2 border-gray-200 pl-4 space-y-4">
+            @for (message of clientMessages(); track message.id) {
+              <div class="relative">
+                <!-- Timeline dot -->
+                <div class="absolute -left-[21px] top-2 w-3 h-3 rounded-full"
+                     [class]="message.direction === 'outbound' ? 'bg-blue-500' : 'bg-green-500'"></div>
+                
+                <div 
+                  class="bg-gray-50 rounded-lg p-3 transition-all duration-200 cursor-pointer hover:bg-gray-100"
+                  [class.ring-2]="isMessageExpanded(message.id)"
+                  [class.ring-blue-400]="isMessageExpanded(message.id)"
+                  (click)="toggleMessageDetails(message.id)"
+                >
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                      <span class="text-sm font-medium text-gray-900">
+                        {{ message.direction === 'outbound' ? '↑ Enviada' : '↓ Recebida' }}
+                      </span>
+                      <span 
+                        [class]="getMessageStatusClass(message.status)"
+                        class="px-2 py-0.5 text-xs font-medium rounded-full"
+                      >
+                        {{ getMessageStatusLabel(message.status) }}
+                      </span>
+                    </div>
+                    <span class="text-xs text-gray-500 whitespace-nowrap">
+                      {{ formatMessageDate(message.createdAt) }}
+                    </span>
+                  </div>
+                  
+                  <p class="text-sm text-gray-700 line-clamp-2 mb-2">
+                    {{ message.textPreview }}
+                  </p>
+                  
+                  <!-- Timing info (sempre visível se existir) -->
+                  @if (hasTimingDetails(message)) {
+                    <div class="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span>{{ getMessageTiming(message) }}</span>
+                    </div>
+                  }
+                  
+                  <!-- Expanded details -->
+                  @if (isMessageExpanded(message.id)) {
+                    <div class="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span class="font-medium text-gray-700">ID:</span>
+                          <span class="text-gray-600 ml-1">{{ message.id }}</span>
+                        </div>
+                        @if (message.providerMessageId) {
+                          <div>
+                            <span class="font-medium text-gray-700">Provider ID:</span>
+                            <span class="text-gray-600 ml-1 truncate block">{{ message.providerMessageId }}</span>
+                          </div>
+                        }
+                      </div>
+                      
+                      <div class="space-y-1 text-xs">
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">Criada:</span>
+                          <span class="text-gray-900 font-medium">{{ formatDate(message.createdAt) }}</span>
+                        </div>
+                        @if (message.sentAt) {
+                          <div class="flex justify-between">
+                            <span class="text-gray-600">✓ Enviada:</span>
+                            <span class="text-gray-900 font-medium">{{ formatDate(message.sentAt) }}</span>
+                          </div>
+                        }
+                        @if (message.deliveredAt) {
+                          <div class="flex justify-between">
+                            <span class="text-gray-600">✓✓ Entregue:</span>
+                            <span class="text-gray-900 font-medium">{{ formatDate(message.deliveredAt) }}</span>
+                          </div>
+                        }
+                        @if (message.readAt) {
+                          <div class="flex justify-between">
+                            <span class="text-gray-600">✓✓ Lida:</span>
+                            <span class="text-blue-600 font-medium">{{ formatDate(message.readAt) }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                  
+                  <div class="flex items-center justify-between gap-3 mt-2">
+                    <div class="flex items-center gap-3 text-xs text-gray-500">
+                      <span class="font-medium">{{ getProviderLabel(message.provider) }}</span>
+                      <span>•</span>
+                      <span>{{ message.channel }}</span>
+                      @if (message.templateId) {
+                        <span>•</span>
+                        <span class="text-purple-600">Template: {{ message.templateId }}</span>
+                      }
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                      @if (hasTimingDetails(message) || message.providerMessageId) {
+                        <span class="text-xs text-blue-600 font-medium">
+                          {{ isMessageExpanded(message.id) ? 'Ocultar ▲' : 'Ver detalhes ▼' }}
+                        </span>
+                      }
+                      
+                      @if (message.status === 'failed') {
+                        <button
+                          (click)="retryMessage(message); $event.stopPropagation()"
+                          class="px-3 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+                          title="Reenviar mensagem"
+                        >
+                          🔄 Reenviar
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </app-section-card>
+
+    <!-- Notes Section (if exists) -->
+    @if (clientDetail()!.client.notes) {
+      <app-section-card title="📌 Notas" [class]="'mt-4'">
+        <p class="text-gray-700">{{ clientDetail()!.client.notes }}</p>
+      </app-section-card>
+    }
+  }
+</div>
+
+<!-- Message Composer (Moderno) -->
+@if (clientDetail()) {
+  <app-message-composer
+    [isOpen]="isComposerOpen()"
+    [context]="composerContext()"
+    (closed)="onComposerClosed()"
+    (sent)="onComposerMessageSent($event)"
+  />
+}
+
+<!-- Modal: Registrar Venda -->
+@if (isSaleModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" (click)="cancelSale()">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" (click)="$event.stopPropagation()">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Registrar Venda</h2>
+      
+      @if (saleFormError()) {
+        <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-700 font-medium">{{ saleFormError() }}</p>
+        </div>
+      }
+      
+      <div class="space-y-4">
+        <!-- Valor -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Valor da Venda <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            [value]="saleForm().amount"
+            (input)="updateSaleAmount($any($event.target).value)"
+            placeholder="0.00"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Descrição -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Descrição (opcional)
+          </label>
+          <input
+            type="text"
+            [value]="saleForm().description"
+            (input)="updateSaleDescription($any($event.target).value)"
+            placeholder="Ex: Colar de ouro 18k"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Data -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Data da Venda
+          </label>
+          <input
+            type="date"
+            [value]="saleForm().date"
+            (input)="updateSaleDate($any($event.target).value)"
+            title="Data da venda"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3 mt-6">
+        <button
+          (click)="cancelSale()"
+          class="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          (click)="confirmSale()"
+          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Tag Manager Modal -->
+@if (clientDetail()) {
+  <app-tag-manager-modal
+    [isOpen]="isTagModalOpen()"
+    [clientId]="clientDetail()!.client.id"
+  [appliedTags]="getAppliedTagIds()"
+    (closed)="onTagModalClosed()"
+    (tagApplied)="onTagApplied($event)"
+    (tagRemoved)="onTagRemoved($event)"
+  />
+}

@@ -1,0 +1,9 @@
+<div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 mb-4">
+  <div class="mb-3">
+    <h2 class="text-lg font-semibold text-slate-900">{{ title }}</h2>
+    <p *ngIf="subtitle" class="text-sm text-slate-500 mt-1">{{ subtitle }}</p>
+  </div>
+  <div>
+    <ng-content></ng-content>
+  </div>
+</div>

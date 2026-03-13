@@ -1,0 +1,9 @@
+<span 
+  [class]="'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ' + colorClasses"
+  role="status"
+  [attr.aria-label]="'Score ' + score + ' - ' + label"
+  [title]="label + ': ' + score + ' pontos'">
+  <span>{{ score }}</span>
+  <span>•</span>
+  <span>{{ displayLabel }}</span>
+</span>

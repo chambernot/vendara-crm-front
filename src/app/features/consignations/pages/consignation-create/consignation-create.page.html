@@ -1,0 +1,200 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <!-- Header -->
+  <div class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="px-4 py-4">
+      <div class="flex items-center gap-4 mb-3">
+        <button
+          (click)="cancel()"
+          class="text-gray-600 hover:text-gray-900"
+          type="button"
+          aria-label="Voltar"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">Nova Consignação</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="p-4">
+    <div class="animate-pulse space-y-4">
+      <div class="bg-white rounded-lg p-4 h-20"></div>
+      <div class="bg-white rounded-lg p-4 h-20"></div>
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+    </div>
+  </div>
+
+  <!-- Sem produtos disponíveis -->
+  <div *ngIf="!isLoading() && availableProducts().length === 0" class="p-4">
+    <app-empty-state
+      icon="📦"
+      title="Nenhum produto disponível"
+      description="Não há produtos disponíveis para consignação no momento"
+    >
+      <button
+        (click)="navigateToCatalog()"
+        class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+      >
+        Ir para Catálogo
+      </button>
+    </app-empty-state>
+  </div>
+
+  <!-- Form -->
+  <div *ngIf="!isLoading() && availableProducts().length > 0" class="p-4">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      <!-- Erro geral -->
+      <div *ngIf="errorMessage()" class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-800 text-sm">{{ errorMessage() }}</p>
+      </div>
+
+      <!-- Cliente -->
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Cliente <span class="text-red-500">*</span>
+        </label>
+        
+        <input
+          type="text"
+          [value]="searchClientTerm()"
+          (input)="searchClientTerm.set($any($event.target).value)"
+          placeholder="Buscar cliente..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          <label
+            *ngFor="let client of filteredClients"
+            class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+            [class.border-blue-500]="form.get('clientId')?.value === client.id"
+            [class.bg-blue-50]="form.get('clientId')?.value === client.id"
+          >
+            <input
+              type="radio"
+              [value]="client.id"
+              formControlName="clientId"
+              class="w-4 h-4 text-blue-600"
+              [attr.aria-label]="'Selecionar cliente ' + client.name"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">{{ client.name }}</div>
+              <div class="text-sm text-gray-600">{{ client.whatsapp || 'Sem WhatsApp' }}</div>
+            </div>
+            <span
+              *ngIf="client.score !== undefined"
+              class="px-2 py-1 rounded-full text-xs font-medium"
+              [class]="client.score >= 70 ? 'bg-green-100 text-green-800' : client.score >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'"
+            >
+              {{ client.score }}
+            </span>
+          </label>
+        </div>
+
+        <div *ngIf="filteredClients.length === 0" class="text-center py-4 text-gray-500">
+          Nenhum cliente encontrado
+        </div>
+
+        <div *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="mt-2 text-red-600 text-sm">
+          Selecione um cliente
+        </div>
+      </div>
+
+      <!-- Produto -->
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Produto <span class="text-red-500">*</span>
+        </label>
+        
+        <input
+          type="text"
+          [value]="searchProductTerm()"
+          (input)="searchProductTerm.set($any($event.target).value)"
+          placeholder="Buscar produto..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          <label
+            *ngFor="let product of filteredProducts"
+            class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+            [class.border-blue-500]="form.get('productId')?.value === product.id"
+            [class.bg-blue-50]="form.get('productId')?.value === product.id"
+          >
+            <input
+              type="radio"
+              [value]="product.id"
+              formControlName="productId"
+              class="w-4 h-4 text-blue-600"
+              [attr.aria-label]="'Selecionar produto ' + product.name"
+            />
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">{{ product.name }}</div>
+              <div class="text-sm text-gray-600">
+                {{ product.type }} • {{ product.material }}
+              </div>
+            </div>
+            <div class="text-blue-600 font-semibold">
+              {{ formatCurrency(product.price) }}
+            </div>
+          </label>
+        </div>
+
+        <div *ngIf="filteredProducts.length === 0" class="text-center py-4 text-gray-500">
+          Nenhum produto encontrado
+        </div>
+
+        <div *ngIf="form.get('productId')?.invalid && form.get('productId')?.touched" class="mt-2 text-red-600 text-sm">
+          Selecione um produto
+        </div>
+      </div>
+
+      <!-- Data prevista de retorno (opcional) -->
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <label for="expectedReturnAt" class="block text-sm font-medium text-gray-700 mb-2">
+          Data prevista de retorno (opcional)
+        </label>
+        <input
+          id="expectedReturnAt"
+          type="date"
+          formControlName="expectedReturnAt"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <!-- Observações (opcional) -->
+      <div class="bg-white rounded-lg p-4 shadow-sm">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Observações (opcional)
+        </label>
+        <textarea
+          formControlName="notes"
+          rows="3"
+          placeholder="Ex: Cliente quer avaliar com calma..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        ></textarea>
+      </div>
+
+      <!-- Botões -->
+      <div class="flex gap-3">
+        <button
+          type="button"
+          (click)="cancel()"
+          [disabled]="isSubmitting()"
+          class="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          [disabled]="isSubmitting() || form.invalid"
+          class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {{ isSubmitting() ? 'Criando...' : 'Criar consignação' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

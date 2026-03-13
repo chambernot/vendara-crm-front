@@ -1,0 +1,175 @@
+<!-- Modal Overlay -->
+@if (isOpen) {
+  <div 
+    class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    (click)="cancel()"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto shadow-xl"
+      (click)="onModalContentClick($event)"
+    >
+      <!-- Header -->
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-gray-900">Novo Cliente</h2>
+        <button 
+          type="button"
+          (click)="cancel()"
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+          [disabled]="saving()"
+          aria-label="Fechar modal"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form [formGroup]="form" (ngSubmit)="save()" class="p-6 space-y-6">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-red-800">{{ errorMessage() }}</p>
+          </div>
+        }
+
+        <!-- Nome -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+            Nome <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Ex: Maria Silva"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <p class="mt-2 text-sm text-red-600">
+              @if (form.get('name')?.errors?.['required']) {
+                Nome é obrigatório
+              }
+              @if (form.get('name')?.errors?.['minlength']) {
+                Nome deve ter no mínimo 2 caracteres
+              }
+            </p>
+          }
+        </div>
+
+        <!-- WhatsApp -->
+        <div>
+          <label for="whatsapp" class="block text-sm font-medium text-gray-700 mb-2">
+            WhatsApp
+          </label>
+          <input
+            id="whatsapp"
+            type="tel"
+            formControlName="whatsapp"
+            placeholder="Ex: 11999887766 ou +5511999887766"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            [class.border-red-500]="form.get('whatsapp')?.invalid && form.get('whatsapp')?.touched"
+          />
+          @if (form.get('whatsapp')?.invalid && form.get('whatsapp')?.touched) {
+            <p class="mt-2 text-sm text-red-600">
+              WhatsApp deve ter no mínimo 10 dígitos
+            </p>
+          }
+          <p class="mt-1 text-xs text-gray-500">Opcional. Digite apenas números.</p>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label for="tag-input" class="block text-sm font-medium text-gray-700 mb-2">
+            Tags
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="tag-input"
+              type="text"
+              [value]="tagInput()"
+              (input)="tagInput.set($any($event.target).value)"
+              (keydown)="onTagInputKeydown($event)"
+              placeholder="Ex: vip, negociando..."
+              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              (click)="addTag()"
+              class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              Adicionar
+            </button>
+          </div>
+          
+          <!-- Tags List -->
+          @if (tags().length > 0) {
+            <div class="mt-3 flex flex-wrap gap-2">
+              @for (tag of tags(); track tag) {
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  {{ tag }}
+                  <button
+                    type="button"
+                    (click)="removeTag(tag)"
+                    class="hover:text-blue-900"
+                    aria-label="Remover tag"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Notas -->
+        <div>
+          <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+            Observações
+          </label>
+          <textarea
+            id="notes"
+            formControlName="notes"
+            rows="3"
+            placeholder="Ex: Cliente interessado em brincos de ouro..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            (click)="cancel()"
+            [disabled]="saving()"
+            class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="saving()"
+            class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            @if (saving()) {
+              <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Salvando...
+            } @else {
+              Salvar
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

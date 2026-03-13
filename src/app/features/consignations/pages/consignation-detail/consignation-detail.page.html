@@ -1,0 +1,170 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <!-- Header -->
+  <div class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="px-4 py-4">
+      <div class="flex items-center gap-4 mb-3">
+        <button
+          (click)="goBack()"
+          class="text-gray-600 hover:text-gray-900"
+          aria-label="Voltar"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">Consignação</h1>
+      </div>
+
+      <div *ngIf="detail()" class="flex items-center gap-2">
+        <span
+          [class]="getStatusClass(detail()!.consignation.status)"
+          class="px-3 py-1 rounded-full text-sm font-medium"
+        >
+          {{ getStatusLabel(detail()!.consignation.status) }}
+        </span>
+        <span class="text-gray-600 text-sm">
+          <span *ngIf="detail()!.consignation.status === 'open'">
+            Aberta há {{ detail()!.daysOpen }} {{ detail()!.daysOpen === 1 ? 'dia' : 'dias' }}
+          </span>
+          <span *ngIf="detail()!.consignation.status !== 'open' && detail()!.consignation.closedAt">
+            Fechada em {{ formatDate(detail()!.consignation.closedAt!) }}
+          </span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="p-4">
+    <div class="animate-pulse space-y-4">
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+      <div class="bg-white rounded-lg p-4 h-32"></div>
+      <div class="bg-white rounded-lg p-4 h-40"></div>
+    </div>
+  </div>
+
+  <!-- Not Found -->
+  <div *ngIf="!isLoading() && notFound()" class="p-4">
+    <app-empty-state
+      icon="❌"
+      title="Consignação não encontrada"
+      description="Esta consignação não existe ou foi removida"
+    >
+      <button
+        (click)="goBack()"
+        class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+      >
+        Voltar para lista
+      </button>
+    </app-empty-state>
+  </div>
+
+  <!-- Conteúdo -->
+  <div *ngIf="!isLoading() && detail()" class="p-4 space-y-4">
+    <!-- Seção Cliente -->
+    <app-section-card title="Cliente">
+      <div class="space-y-3">
+        <div class="flex items-center gap-2">
+          <h3 class="text-lg font-semibold text-gray-900">{{ detail()!.client.name }}</h3>
+          <app-score-badge *ngIf="detail()!.client.score !== undefined" [score]="detail()!.client.score!" />
+        </div>
+
+        <div *ngIf="detail()!.client.whatsapp" class="flex items-center gap-2 text-gray-700">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          <span>{{ detail()!.client.whatsapp }}</span>
+        </div>
+
+        <button
+          *ngIf="detail()!.client.whatsapp"
+          (click)="callWhatsApp()"
+          class="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+        >
+          Chamar no WhatsApp
+        </button>
+      </div>
+    </app-section-card>
+
+    <!-- Seção Produto -->
+    <app-section-card title="Produto">
+      <div class="space-y-3">
+        <h3 class="text-lg font-semibold text-gray-900">{{ detail()!.product.name }}</h3>
+
+        <div class="flex items-center gap-4 text-sm text-gray-600">
+          <span *ngIf="detail()!.product.type">{{ detail()!.product.type }}</span>
+          <span *ngIf="detail()!.product.material">• {{ detail()!.product.material }}</span>
+        </div>
+
+        <div class="text-2xl font-bold text-blue-600">
+          {{ formatCurrency(detail()!.product.price) }}
+        </div>
+
+        <button
+          (click)="navigateToCatalog()"
+          class="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+        >
+          Ver no Catálogo
+        </button>
+      </div>
+    </app-section-card>
+
+    <!-- Informações adicionais -->
+    <app-section-card title="Informações">
+      <div class="space-y-3 text-sm">
+        <div>
+          <span class="text-gray-600">Data de início:</span>
+          <span class="ml-2 font-medium text-gray-900">{{ formatDate(detail()!.consignation.startedAt) }}</span>
+        </div>
+
+        <div *ngIf="detail()!.consignation.expectedReturnAt">
+          <span class="text-gray-600">Retorno previsto:</span>
+          <span class="ml-2 font-medium text-gray-900">{{ formatDate(detail()!.consignation.expectedReturnAt!) }}</span>
+        </div>
+
+        <div *ngIf="detail()!.consignation.closedAt">
+          <span class="text-gray-600">Data de encerramento:</span>
+          <span class="ml-2 font-medium text-gray-900">{{ formatDate(detail()!.consignation.closedAt!) }}</span>
+        </div>
+
+        <div *ngIf="detail()!.consignation.salePrice !== undefined">
+          <span class="text-gray-600">Valor de venda:</span>
+          <span class="ml-2 font-medium text-green-600">{{ formatCurrency(detail()!.consignation.salePrice!) }}</span>
+        </div>
+
+        <div *ngIf="detail()!.consignation.notes">
+          <span class="text-gray-600">Observações:</span>
+          <p class="mt-1 text-gray-900">{{ detail()!.consignation.notes }}</p>
+        </div>
+      </div>
+    </app-section-card>
+
+    <!-- Ações (apenas se status === 'open') -->
+    <app-section-card *ngIf="detail()!.consignation.status === 'open'" title="Ações">
+      <div class="space-y-3">
+        <button
+          (click)="markAsSold()"
+          [disabled]="isProcessing()"
+          class="w-full bg-green-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+        >
+          Marcar como Vendida
+        </button>
+
+        <button
+          (click)="markAsReturned()"
+          [disabled]="isProcessing()"
+          class="w-full bg-gray-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+        >
+          Marcar como Devolvida
+        </button>
+      </div>
+    </app-section-card>
+
+    <!-- Info de encerramento -->
+    <div *ngIf="detail()!.consignation.status !== 'open'" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <p class="text-blue-800 text-sm">
+        Esta consignação foi encerrada e não pode mais ser alterada.
+      </p>
+    </div>
+  </div>
+</div>

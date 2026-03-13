@@ -1,0 +1,434 @@
+<div class="min-h-screen bg-gray-50 pb-16">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 py-4 flex items-center gap-3">
+      <button
+        type="button"
+        (click)="goBack()"
+        class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        aria-label="Voltar"
+      >
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-xl font-semibold text-gray-900 truncate">
+          {{ product()?.name || 'Produto' }}
+        </h1>
+        @if (product()) {
+          <p class="text-xs text-gray-500">ID: {{ product()!.id }}</p>
+        }
+      </div>
+      @if (product() && !product()!.active) {
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-white">Inativo</span>
+      }
+    </div>
+  </header>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="p-6">
+      <div class="bg-white border border-gray-200 rounded-xl p-6 animate-pulse">
+        <div class="h-40 bg-gray-200 rounded-lg"></div>
+        <div class="mt-6 space-y-3">
+          <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+          <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div class="h-10 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Not found -->
+  @else if (notFound()) {
+    <div class="p-4">
+      <app-empty-state
+        icon="🔍"
+        title="Produto não encontrado"
+        description="O produto que você está procurando não existe ou foi removido."
+      />
+      <div class="mt-6 text-center">
+        <a
+          routerLink="/app/catalogo"
+          class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Voltar ao Catálogo
+        </a>
+      </div>
+    </div>
+  }
+
+  <!-- Form -->
+  @else {
+    <div class="p-4 space-y-4">
+      <!-- Foto -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="h-56 md:h-80 bg-gray-100 relative">
+          @if (product()?.photoUrl) {
+            <img [src]="getFullImageUrl(product()!.photoUrl!)" [alt]="product()!.name" [title]="product()!.name" class="w-full h-full object-cover" />
+          } @else if (product()?.images && product()!.images.length > 0) {
+            <img [src]="getFullImageUrl(product()!.images[0].url)" [alt]="product()!.name" [title]="product()!.name" class="w-full h-full object-cover" />
+          } @else {
+            <div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+              </svg>
+            </div>
+          }
+          @if (product() && product()!.quantityAvailable === 0) {
+            <div class="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold bg-red-600 text-white">
+              Sem estoque
+            </div>
+          }
+        </div>
+        <div class="p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs text-gray-500">Preço</div>
+            <div class="text-2xl font-bold text-gray-900">{{ formatCurrency(product()!.price) }}</div>
+          </div>
+          <button
+            type="button"
+            (click)="shareOnWhatsApp()"
+            class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium"
+          >
+            Compartilhar
+          </button>
+        </div>
+      </div>
+
+      <!-- Edit -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <form [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
+          <div>
+            <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+            <input
+              id="nome"
+              type="text"
+              formControlName="nome"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            @if (form.get('nome')?.invalid && form.get('nome')?.touched) {
+              <p class="mt-1 text-sm text-red-600">Nome é obrigatório</p>
+            }
+          </div>
+
+          <div>
+            <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea
+              id="descricao"
+              formControlName="descricao"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="Descrição detalhada do produto para a vitrine"
+            ></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+              <select
+                id="tipo"
+                formControlName="tipo"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                @for (opt of typeOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label for="material" class="block text-sm font-medium text-gray-700 mb-1">Material *</label>
+              <select
+                id="material"
+                formControlName="material"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                @for (opt of materialOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="preco" class="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
+              <input
+                id="preco"
+                type="number"
+                step="0.01"
+                min="0"
+                formControlName="preco"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              @if (form.get('preco')?.invalid && form.get('preco')?.touched) {
+                <p class="mt-1 text-sm text-red-600">Preço deve ser maior que zero</p>
+              }
+            </div>
+
+            <div>
+              <label for="precoPromocional" class="block text-sm font-medium text-gray-700 mb-1">Preço Promocional (R$)</label>
+              <input
+                id="precoPromocional"
+                type="number"
+                step="0.01"
+                min="0"
+                formControlName="precoPromocional"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="quantidadeDisponivel" class="block text-sm font-medium text-gray-700 mb-1">Quantidade *</label>
+            <input
+              id="quantidadeDisponivel"
+              type="number"
+              min="0"
+              formControlName="quantidadeDisponivel"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            @if (form.get('quantidadeDisponivel')?.invalid && form.get('quantidadeDisponivel')?.touched) {
+              <p class="mt-1 text-sm text-red-600">Quantidade deve ser 0 ou maior</p>
+            }
+          </div>
+
+          <!-- SEÇÃO: Detalhes da Vitrine -->
+          <div class="mt-6 mb-6 flex items-center gap-2">
+            <div class="flex-1 h-px bg-gray-300"></div>
+            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">📱 Vitrine</h3>
+            <div class="flex-1 h-px bg-gray-300"></div>
+          </div>
+
+          <div>
+            <label for="categoriaVitrine" class="block text-sm font-medium text-gray-700 mb-1">
+              Categoria (Vitrine) *
+            </label>
+            <select
+              id="categoriaVitrine"
+              formControlName="categoriaVitrine"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Selecione uma categoria</option>
+              @for (categoria of productCategories; track categoria) {
+                <option [value]="categoria">{{ categoria }}</option>
+              }
+            </select>
+            @if (form.get('categoriaVitrine')?.invalid && form.get('categoriaVitrine')?.touched) {
+              <p class="mt-1 text-sm text-red-600">Categoria é obrigatória</p>
+            }
+            <p class="mt-1 text-xs text-gray-500">Categoria para exibir na vitrine pública</p>
+          </div>
+
+          <div>
+            <label for="colecao" class="block text-sm font-medium text-gray-700 mb-1">
+              Coleção
+            </label>
+            <input
+              id="colecao"
+              type="text"
+              formControlName="colecao"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Verão 2026"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="cor" class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
+              <input
+                id="cor"
+                type="text"
+                formControlName="cor"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: Dourado"
+              />
+            </div>
+
+            <div>
+              <label for="tamanho" class="block text-sm font-medium text-gray-700 mb-1">Tamanho</label>
+              <input
+                id="tamanho"
+                type="text"
+                formControlName="tamanho"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: M, 18"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="urlVideo" class="block text-sm font-medium text-gray-700 mb-1">
+              URL do Vídeo
+            </label>
+            <input
+              id="urlVideo"
+              type="url"
+              formControlName="urlVideo"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="https://youtube.com/watch?v=..."
+            />
+            <p class="mt-1 text-xs text-gray-500">Link para vídeo do produto</p>
+          </div>
+
+          <!-- Selos -->
+          <div class="space-y-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+            <p class="text-sm font-semibold text-gray-800 mb-3">🏷️ Selos e Destaques</p>
+            
+            <label class="flex items-center gap-3 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
+              <input type="checkbox" class="h-5 w-5 text-amber-500 rounded border-gray-300 focus:ring-amber-500" formControlName="maisVendido" />
+              <span class="select-none">⭐ <strong>Mais Vendido</strong> - Selo dourado no card</span>
+            </label>
+
+            <label class="flex items-center gap-3 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
+              <input type="checkbox" class="h-5 w-5 text-blue-500 rounded border-gray-300 focus:ring-blue-500" formControlName="novidade" />
+              <span class="select-none">✨ <strong>Novidade</strong> - Selo azul no card</span>
+            </label>
+
+            <label class="flex items-center gap-3 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
+              <input type="checkbox" class="h-5 w-5 text-red-500 rounded border-gray-300 focus:ring-red-500" formControlName="promocao" />
+              <span class="select-none">🏷️ <strong>Promoção</strong> - Selo vermelho animado no card</span>
+            </label>
+          </div>
+
+          <div>
+            <label for="urlFoto" class="block text-sm font-medium text-gray-700 mb-1">URL da Foto</label>
+            <input
+              id="urlFoto"
+              type="url"
+              formControlName="urlFoto"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+            <textarea
+              id="observacoes"
+              rows="4"
+              formControlName="observacoes"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
+              <input type="checkbox" class="h-4 w-4" formControlName="active" />
+              Ativo
+            </label>
+
+            <div class="text-xs text-gray-500">
+              @if (product()?.updatedAt) {
+                Atualizado em {{ product()!.updatedAt | date:'dd/MM/yyyy' }}
+              } @else {
+                Criado em {{ product()!.createdAt | date:'dd/MM/yyyy' }}
+              }
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              (click)="deactivate()"
+              [disabled]="deactivating() || !product() || !product()!.active"
+              class="px-4 py-3 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 font-medium disabled:opacity-50"
+            >
+              @if (deactivating()) { Desativando... } @else { Desativar }
+            </button>
+
+            <button
+              type="submit"
+              [disabled]="saving() || form.invalid"
+              class="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium disabled:opacity-50"
+            >
+              @if (saving()) { Salvando... } @else { Salvar }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Galeria de Imagens -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4">
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-gray-900">📷 Imagens do Produto</h2>
+          <p class="text-sm text-gray-500 mt-1">Gerencie as imagens do produto. A primeira imagem será usada como capa.</p>
+        </div>
+
+        <!-- Galeria de imagens existentes -->
+        @if (product() && product()!.images && product()!.images.length > 0) {
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+            @for (img of product()!.images; track img.id) {
+              <div class="relative group border border-gray-200 rounded-lg overflow-hidden hover:border-blue-500 transition-colors">
+                <img
+                  [src]="getFullImageUrl(img.url)"
+                  [alt]="img.fileName"
+                  [title]="img.fileName"
+                  class="w-full h-48 object-cover"
+                  loading="lazy"
+                />
+                
+                <!-- Badge de capa -->
+                @if (img.order === 0) {
+                  <div class="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                    ⭐ Capa
+                  </div>
+                }
+
+                <!-- Overlay com ações -->
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100">
+                  <div class="flex gap-2">
+                    @if (img.order !== 0) {
+                      <button
+                        type="button"
+                        (click)="setAsCover(img.id)"
+                        class="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700 font-medium"
+                        title="Definir como capa"
+                      >
+                        ⭐ Usar como Capa
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      (click)="removeImage(img.id)"
+                      class="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700 font-medium"
+                      title="Remover imagem"
+                    >
+                      🗑️ Remover
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Info da imagem -->
+                <div class="p-2 bg-gray-50 border-t border-gray-200">
+                  <p class="text-xs text-gray-600 truncate" [title]="img.fileName">{{ img.fileName }}</p>
+                  <p class="text-xs text-gray-400">{{ (img.sizeBytes / 1024) | number:'1.0-0' }} KB</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Mensagem quando não tem imagens -->
+        @if (!product() || !product()!.images || product()!.images.length === 0) {
+          <div class="text-center py-8 px-4 bg-gray-50 rounded-lg border border-dashed border-gray-300 mb-4">
+            <div class="text-4xl mb-2">📷</div>
+            <p class="text-gray-600 font-medium">Nenhuma imagem cadastrada</p>
+            <p class="text-sm text-gray-500 mt-1">Adicione imagens para melhorar a apresentação do produto</p>
+          </div>
+        }
+
+        <!-- Componente de upload -->
+        @if (product()) {
+          <app-product-image-upload
+            [productId]="product()!.id"
+            (imageUploaded)="onImageUploaded($event)"
+            (uploadError)="onUploadError($event)"
+          ></app-product-image-upload>
+        }
+      </div>
+    </div>
+  }
+</div>

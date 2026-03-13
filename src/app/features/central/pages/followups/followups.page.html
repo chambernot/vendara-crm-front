@@ -1,0 +1,755 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <!-- Header -->
+  <div class="sticky-header shadow-sm">
+    <div class="vendara-container py-5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div>
+          <h1 class="page-title">Central de Follow-ups</h1>
+          <p class="page-subtitle">Fila inteligente ordenada por prioridade</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Botão Gerar Follow-ups -->
+          <button
+            (click)="generateFollowups()"
+            [disabled]="loading || generatingFollowups()"
+            class="btn-primary shadow-md hover:shadow-lg"
+            title="Gera follow-ups automaticamente (48h sem resposta)"
+          >
+            @if (generatingFollowups()) {
+              <svg class="w-5 h-5 spinner" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Gerando...
+            } @else {
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Gerar follow-ups agora
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid-responsive-4 mb-6">
+        <div class="kpi-card-blue shadow-sm">
+          <div class="text-3xl font-bold text-blue-600 mb-1">{{ followupStats().today }}</div>
+          <div class="text-sm font-medium text-blue-700">Hoje</div>
+        </div>
+        <div class="kpi-card-red shadow-sm">
+          <div class="text-3xl font-bold text-red-600 mb-1">{{ followupStats().overdue }}</div>
+          <div class="text-sm font-medium text-red-700">Atrasados</div>
+        </div>
+        <div class="kpi-card-purple shadow-sm">
+          <div class="text-3xl font-bold text-purple-600 mb-1">{{ followupStats().scheduled }}</div>
+          <div class="text-sm font-medium text-purple-700">Agendadas</div>
+        </div>
+        <div class="kpi-card-green shadow-sm">
+          <div class="text-3xl font-bold text-green-600 mb-1">{{ followupStats().completed }}</div>
+          <div class="text-sm font-medium text-green-700">Concluídos</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+        <button
+          (click)="setActiveTab('today')"
+          class="tab-button"
+          [class.tab-button-active]="activeTab() === 'today'"
+        >
+          <span>Hoje</span>
+          <span class="badge-primary ml-1.5">{{ followupStats().today }}</span>
+        </button>
+        <button
+          (click)="setActiveTab('overdue')"
+          class="tab-button text-red-600 hover:text-red-700"
+          [class.tab-button-active]="activeTab() === 'overdue'"
+          [class.border-red-600]="activeTab() === 'overdue'"
+        >
+          <span>Atrasados</span>
+          <span class="badge-danger ml-1.5">{{ followupStats().overdue }}</span>
+        </button>
+        <button
+          (click)="setActiveTab('scheduled')"
+          class="tab-button text-purple-600 hover:text-purple-700"
+          [class.tab-button-active]="activeTab() === 'scheduled'"
+          [class.border-purple-600]="activeTab() === 'scheduled'"
+        >
+          <span>Agendadas</span>
+          <span class="badge ml-1.5 bg-purple-100 text-purple-800">{{ followupStats().scheduled }}</span>
+        </button>
+        <button
+          (click)="setActiveTab('completed')"
+          class="tab-button text-green-600 hover:text-green-700"
+          [class.tab-button-active]="activeTab() === 'completed'"
+          [class.border-green-600]="activeTab() === 'completed'"
+        >
+          <span>Concluídos</span>
+          <span class="badge-success ml-1.5">{{ followupStats().completed }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Message (genérico) -->
+  @if (successMessageText()) {
+    <div class="vendara-container mt-6">
+      <div class="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm">
+        <div class="flex items-start gap-3">
+          <svg class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm text-green-800 font-medium">{{ successMessageText() }}</p>
+          </div>
+          <button 
+            (click)="successMessageText.set('')" 
+            class="text-green-600 hover:text-green-800 transition-colors"
+            aria-label="Fechar mensagem"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+
+
+  <!-- =========================================== -->
+  <!-- SEÇÃO: Follow-ups Recomendados -->
+  <!-- =========================================== -->
+  
+  <!-- Aba: HOJE -->
+  @if (activeTab() === 'today') {
+    @if (loading) {
+      <!-- Skeleton loading -->
+      <div class="vendara-container py-6 space-y-4">
+        @for (i of [1,2,3]; track i) {
+          <div class="card animate-pulse">
+            <div class="card-body">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="skeleton h-6 w-40"></div>
+                <div class="skeleton h-6 w-16 rounded-full"></div>
+              </div>
+              <div class="skeleton-text w-64 mb-4"></div>
+              <div class="flex gap-2">
+                <div class="skeleton h-10 flex-1"></div>
+                <div class="skeleton h-10 flex-1"></div>
+                <div class="skeleton h-10 flex-1"></div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (loadError()) {
+      <!-- Error state with retry button -->
+      <div class="vendara-container py-12">
+        <div class="empty-state">
+          <svg class="w-16 h-16 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="empty-state-title">Erro ao carregar</h3>
+          <p class="empty-state-description">{{ loadError() }}</p>
+          <button
+            (click)="loadFollowups()"
+            class="btn-primary shadow-md"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Recarregar
+          </button>
+        </div>
+      </div>
+    } @else if (sortedTodayFollowups().length === 0) {
+      <div class="px-4 py-8">
+        <!-- Resultado da geração: mensagem fixa explicativa -->
+        @if (lastGenerateResult(); as genResult) {
+          @if (genResult.createdCount === 0) {
+            <div class="max-w-lg mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <!-- Header -->
+              <div class="bg-amber-50 border-b border-amber-200 px-5 py-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">📋</span>
+                  <div>
+                    <h3 class="font-semibold text-gray-900">Nenhum follow-up gerado</h3>
+                    <p class="text-sm text-gray-600 mt-0.5">O sistema analisou seus clientes e não encontrou pendências.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Motivos -->
+              <div class="px-5 py-4">
+                <p class="text-sm font-medium text-gray-700 mb-3">Por que isso acontece?</p>
+                <div class="space-y-2">
+                  @if (genResult.reasons.length > 0) {
+                    @for (reason of genResult.reasons; track $index) {
+                      <div class="flex items-start gap-2 text-sm text-gray-600">
+                        <span class="text-amber-500 mt-0.5">•</span>
+                        <span>{{ reason }}</span>
+                      </div>
+                    }
+                  } @else {
+                    <div class="flex items-start gap-2 text-sm text-gray-600">
+                      <span class="text-amber-500 mt-0.5">•</span>
+                      <span>Todos os clientes já possuem follow-up aberto ou responderam recentemente</span>
+                    </div>
+                    <div class="flex items-start gap-2 text-sm text-gray-600">
+                      <span class="text-amber-500 mt-0.5">•</span>
+                      <span>Nenhuma conversa sem resposta há mais de 48 horas</span>
+                    </div>
+                    <div class="flex items-start gap-2 text-sm text-gray-600">
+                      <span class="text-amber-500 mt-0.5">•</span>
+                      <span>Clientes sem número de WhatsApp cadastrado são ignorados</span>
+                    </div>
+                  }
+                </div>
+
+                @if (genResult.skippedCount > 0) {
+                  <div class="mt-3 px-3 py-2 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">Clientes analisados e ignorados: <span class="font-medium text-gray-700">{{ genResult.skippedCount }}</span></p>
+                  </div>
+                }
+              </div>
+
+              <!-- Ações -->
+              <div class="px-5 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row gap-2">
+                <button
+                  (click)="lastGenerateResult.set(null)"
+                  class="flex-1 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm"
+                >
+                  ✕ Fechar
+                </button>
+                <button
+                  (click)="generateFollowups()"
+                  [disabled]="generatingFollowups()"
+                  class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 text-sm"
+                >
+                  @if (generatingFollowups()) {
+                    ⏳ Gerando...
+                  } @else {
+                    🔄 Tentar novamente
+                  }
+                </button>
+              </div>
+            </div>
+          }
+        } @else {
+          <!-- Estado inicial: sem resultado de geração -->
+          <app-empty-state
+            icon="📅"
+            title="Nenhum follow-up para hoje"
+            description="Clique em 'Gerar follow-ups agora' para criar follow-ups automáticos para seus clientes."
+          >
+            <div class="mt-4 flex flex-col items-center gap-3">
+              <button
+                (click)="generateFollowups()"
+                [disabled]="generatingFollowups()"
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50"
+              >
+                @if (generatingFollowups()) {
+                  ⏳ Gerando...
+                } @else {
+                  🔄 Gerar follow-ups agora
+                }
+              </button>
+            </div>
+          </app-empty-state>
+        }
+      </div>
+    } @else {
+      <div class="px-4 py-4">
+        <h2 class="text-lg font-bold text-gray-900 mb-3">� Para Hoje</h2>
+        
+        <div class="space-y-3">
+          @for (followup of sortedTodayFollowups(); track followup.followupId) {
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+              <!-- Cabeçalho -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-gray-900">{{ followup.clientName }}</h3>
+                    <app-score-badge [score]="followup.score"></app-score-badge>
+                  </div>
+                  <p class="text-sm text-gray-600">
+                    {{ getClientWhatsApp(followup.clientId) || 'Sem WhatsApp cadastrado' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Motivo (1 linha) -->
+              <div class="mb-3">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    ⏳ Aguardar resposta do cliente
+                  </span>
+                } @else {
+                  <p class="text-sm text-gray-700">
+                    <span class="font-medium">Motivo:</span> {{ followup.suggestion?.reason || reasonLabels[followup.reason] }}
+                  </p>
+                }
+              </div>
+
+              <!-- Template recomendado -->
+              @if (followup.suggestion?.recommendedTemplateId) {
+                <div class="mb-3">
+                  <p class="text-xs text-purple-600">
+                    <span class="font-medium">Template:</span> {{ getTemplateLabel(followup.suggestion?.recommendedTemplateId || '') }}
+                  </p>
+                </div>
+              }
+
+              <!-- Ações -->
+              <div class="flex flex-wrap gap-2">
+                <!-- Botão ENVIAR AGORA - envia direto sem abrir tela -->
+                <button
+                  (click)="sendFollowupDirectly(followup)"
+                  class="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  🚀 Enviar agora
+                </button>
+
+                <!-- Botão REAGENDAR -->
+                <button
+                  (click)="rescheduleFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-200 transition-colors"
+                >
+                  📅 Reagendar
+                </button>
+
+                <!-- Botão CONCLUIR -->
+                <button
+                  (click)="completeFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                >
+                  ✅ Concluir
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Aba: ATRASADOS -->
+  @if (activeTab() === 'overdue') {
+    @if (loading) {
+      <div class="px-4 py-4 space-y-3">
+        @for (i of [1,2]; track i) {
+          <div class="bg-white rounded-lg shadow-sm border-2 border-red-200 p-4 animate-pulse">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-5 w-32 bg-gray-200 rounded"></div>
+              <div class="h-5 w-12 bg-gray-200 rounded-full"></div>
+            </div>
+            <div class="h-4 w-40 bg-red-100 rounded mb-3"></div>
+            <div class="flex gap-2">
+              <div class="h-9 flex-1 bg-gray-100 rounded-lg"></div>
+              <div class="h-9 flex-1 bg-gray-100 rounded-lg"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (loadError()) {
+      <div class="px-4 py-8">
+        <div class="text-center">
+          <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">Erro ao carregar</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ loadError() }}</p>
+          <button
+            (click)="loadFollowups()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          >
+            🔄 Recarregar
+          </button>
+        </div>
+      </div>
+    } @else if (sortedOverdueFollowups().length === 0) {
+      <div class="px-4 py-8">
+        <app-empty-state
+          icon="✅"
+          title="Sem follow-ups atrasados"
+          description="Você está em dia com todos os follow-ups!"
+        ></app-empty-state>
+      </div>
+    } @else {
+      <div class="px-4 py-4">
+        <h2 class="text-lg font-bold text-red-600 mb-3">⚠️ Atrasados</h2>
+        
+        <div class="space-y-3">
+          @for (followup of sortedOverdueFollowups(); track followup.followupId) {
+            <div class="bg-white rounded-lg shadow-sm border-2 border-red-200 p-4 hover:shadow-md transition-shadow">
+              <!-- Cabeçalho -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-gray-900">{{ followup.clientName }}</h3>
+                    <app-score-badge [score]="followup.score"></app-score-badge>
+                  </div>
+                  <p class="text-sm text-red-600 font-medium">
+                    ⚠️ Atrasado desde {{ followup.dueDate | date:'dd/MM' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Motivo -->
+              <div class="mb-4">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    ⏳ Aguardar resposta do cliente
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {{ followup.suggestion?.reason || reasonLabels[followup.reason] }}
+                  </span>
+                }
+              </div>
+
+              <!-- Ações -->
+              <div class="flex flex-wrap gap-2">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <!-- Botão ENVIAR AGORA - abre conversa no Composer/Messages -->
+                  <button
+                    (click)="navigateToConversation(followup.clientId, followup.followupId)"
+                    class="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2 bg-red-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                  >
+                    💬 Enviar agora
+                  </button>
+                } @else {
+                  <!-- Botão ENVIAR AGORA -->
+                  <button
+                    (click)="openComposerForFollowup(followup)"
+                    class="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2 bg-red-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                  >
+                    🚨 Enviar URGENTE
+                  </button>
+                }
+
+                <!-- Botão REAGENDAR -->
+                <button
+                  (click)="rescheduleFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-200 transition-colors"
+                >
+                  📅 Reagendar
+                </button>
+
+                <!-- Botão CONCLUIR -->
+                <button
+                  (click)="completeFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                >
+                  ✅ Concluir
+                </button>
+
+                <a
+                  [routerLink]="getClientDetailLink(followup.clientId)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 border border-purple-300 bg-purple-50 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                >
+                  👤 Ver cliente
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Aba: AGENDADOS -->
+  @if (activeTab() === 'scheduled') {
+    @if (loading) {
+      <div class="px-4 py-4 space-y-3">
+        @for (i of [1,2]; track i) {
+          <div class="bg-white rounded-lg shadow-sm border border-purple-200 p-4 animate-pulse">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-5 w-32 bg-gray-200 rounded"></div>
+              <div class="h-5 w-12 bg-gray-200 rounded-full"></div>
+            </div>
+            <div class="h-4 w-40 bg-purple-100 rounded mb-3"></div>
+            <div class="flex gap-2">
+              <div class="h-9 flex-1 bg-gray-100 rounded-lg"></div>
+              <div class="h-9 flex-1 bg-gray-100 rounded-lg"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (loadError()) {
+      <div class="px-4 py-8">
+        <div class="text-center">
+          <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">Erro ao carregar</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ loadError() }}</p>
+          <button
+            (click)="loadFollowups()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          >
+            🔄 Recarregar
+          </button>
+        </div>
+      </div>
+    } @else if (sortedScheduledFollowups().length === 0) {
+      <div class="px-4 py-8">
+        <app-empty-state
+          icon="📅"
+          title="Nenhum follow-up agendado"
+          description="Os follow-ups agendados para datas futuras aparecerão aqui."
+        ></app-empty-state>
+      </div>
+    } @else {
+      <div class="px-4 py-4">
+        <h2 class="text-lg font-bold text-purple-600 mb-3">📅 Agendadas</h2>
+        
+        <div class="space-y-3">
+          @for (followup of sortedScheduledFollowups(); track followup.followupId) {
+            <div class="bg-white rounded-lg shadow-sm border border-purple-200 p-4 hover:shadow-md transition-shadow">
+              <!-- Cabeçalho -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-gray-900">{{ followup.clientName }}</h3>
+                    <app-score-badge [score]="followup.score"></app-score-badge>
+                  </div>
+                  <p class="text-sm text-purple-600 font-medium">
+                    📅 Agendado para {{ followup.dueDate | date:'dd/MM/yyyy' }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Motivo -->
+              <div class="mb-3">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    ⏳ Aguardar resposta do cliente
+                  </span>
+                } @else {
+                  <p class="text-sm text-gray-700">
+                    <span class="font-medium">Motivo:</span> {{ followup.suggestion?.reason || reasonLabels[followup.reason] }}
+                  </p>
+                }
+              </div>
+
+              <!-- Template recomendado -->
+              @if (followup.suggestion?.recommendedTemplateId) {
+                <div class="mb-3">
+                  <p class="text-xs text-purple-600">
+                    <span class="font-medium">Template:</span> {{ getTemplateLabel(followup.suggestion?.recommendedTemplateId || '') }}
+                  </p>
+                </div>
+              }
+
+              <!-- Ações -->
+              <div class="flex flex-wrap gap-2">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <!-- Botão ENVIAR AGORA - abre conversa no Composer/Messages -->
+                  <button
+                    (click)="navigateToConversation(followup.clientId, followup.followupId)"
+                    class="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2 bg-purple-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+                  >
+                    💬 Enviar agora
+                  </button>
+                } @else {
+                  <!-- Botão ENVIAR AGORA -->
+                  <button
+                    (click)="openComposerForFollowup(followup)"
+                    class="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2 bg-purple-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+                  >
+                    🚀 Enviar agora
+                  </button>
+                }
+
+                <!-- Botão REAGENDAR -->
+                <button
+                  (click)="rescheduleFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-purple-100 border border-purple-300 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-200 transition-colors"
+                >
+                  📅 Reagendar
+                </button>
+
+                <!-- Botão CONCLUIR -->
+                <button
+                  (click)="completeFollowup(followup.followupId!)"
+                  class="flex-1 min-w-[120px] inline-flex items-center justify-center px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                >
+                  ✅ Concluir
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Aba: CONCLUÍDOS -->
+  @if (activeTab() === 'completed') {
+    @if (loading) {
+      <div class="px-4 py-4 space-y-3">
+        @for (i of [1,2]; track i) {
+          <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4 animate-pulse">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-5 w-32 bg-gray-200 rounded"></div>
+              <div class="h-5 w-16 bg-green-100 rounded"></div>
+            </div>
+            <div class="h-4 w-40 bg-gray-100 rounded"></div>
+          </div>
+        }
+      </div>
+    } @else if (loadError()) {
+      <div class="px-4 py-8">
+        <div class="text-center">
+          <svg class="w-12 h-12 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">Erro ao carregar</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ loadError() }}</p>
+          <button
+            (click)="loadFollowups()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          >
+            🔄 Recarregar
+          </button>
+        </div>
+      </div>
+    } @else if (completedFollowupsToday().length === 0) {
+      <div class="px-4 py-8">
+        <app-empty-state
+          icon="📋"
+          title="Nenhum follow-up concluído hoje"
+          description="Os follow-ups concluídos hoje aparecerão aqui."
+        ></app-empty-state>
+      </div>
+    } @else {
+      <div class="px-4 py-4">
+        <h2 class="text-lg font-bold text-green-600 mb-3">✅ Concluídos Hoje</h2>
+        
+        <div class="space-y-3">
+          @for (followup of completedFollowupsToday(); track followup.followupId) {
+            <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4 opacity-75">
+              <!-- Cabeçalho -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-gray-900">{{ followup.clientName }}</h3>
+                    <span class="text-xs text-green-600 font-medium">✅ Concluído</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Motivo -->
+              <div class="mb-4">
+                @if (isAwaitingCustomerReply(followup)) {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    ⏳ Aguardar resposta do cliente
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {{ followup.suggestion?.reason || reasonLabels[followup.reason] }}
+                  </span>
+                }
+              </div>
+
+              <!-- Ação -->
+              <div class="flex gap-2">
+                <a
+                  [routerLink]="getClientDetailLink(followup.clientId)"
+                  class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-purple-300 bg-purple-50 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                >
+                  👤 Ver cliente
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Modal de criação rápida de cliente -->
+  <app-client-quick-create-modal
+    [isOpen]="isModalOpen()"
+    (closed)="closeModal()"
+    (created)="onClientCreated($event)"
+  ></app-client-quick-create-modal>
+
+  <!-- Message Composer -->
+  <app-message-composer
+    [isOpen]="isComposerOpen()"
+    [context]="composerContext()"
+    (closed)="onComposerClosed()"
+    (sent)="onMessageSent($event)"
+  ></app-message-composer>
+
+  <!-- Modal de Reagendamento -->
+  @if (isRescheduleModalOpen()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" (click)="closeRescheduleModal()"></div>
+
+      <!-- Modal -->
+      <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+          <!-- Header -->
+          <div class="bg-purple-50 px-6 py-4 border-b border-purple-100">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-900" id="modal-title">
+                📅 Reagendar Follow-up
+              </h3>
+              <button
+                (click)="closeRescheduleModal()"
+                class="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Fechar modal"
+                title="Fechar"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="px-6 py-5">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Selecione a nova data:
+            </label>
+            <input
+              type="date"
+              [(ngModel)]="rescheduleDate"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-lg"
+              [min]="getMinDate()"
+              title="Selecione a nova data"
+              placeholder="Selecione a data"
+            />
+            <p class="mt-2 text-xs text-gray-500">
+              💡 Escolha uma data futura para reagendar este follow-up
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <button
+              (click)="closeRescheduleModal()"
+              class="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              (click)="onRescheduleConfirm()"
+              class="w-full sm:w-auto px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors"
+            >
+              ✅ Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

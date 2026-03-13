@@ -1,0 +1,177 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <div class="vendara-container py-6">
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Clientes</h1>
+        <p class="page-subtitle">Gerencie seus clientes e relacionamentos</p>
+      </div>
+      <a
+        routerLink="/app/clientes/novo"
+        class="btn-primary shadow-md hover:shadow-lg"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Novo Cliente
+      </a>
+    </div>
+
+    <!-- Loading State -->
+    @if (loading()) {
+      <div class="card">
+        <div class="card-body text-center py-12">
+          <div class="spinner h-12 w-12 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Carregando clientes...</p>
+        </div>
+      </div>
+    }
+
+    <!-- Main Content -->
+    @if (!loading()) {
+      <!-- Empty State - sem clientes -->
+      @if (allClients().length === 0) {
+        <app-empty-state
+          icon="👥"
+          title="Nenhum cliente cadastrado"
+          description="Comece criando seu primeiro cliente para gerenciar suas vendas."
+          [action]="{ label: 'Criar Cliente', route: '/app/clientes/novo' }"
+        />
+      }
+
+      <!-- Search and Filters -->
+      @if (allClients().length > 0) {
+        <div class="card shadow-sm mb-6">
+          <div class="card-body">
+            <!-- Search Input -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar por nome ou WhatsApp..."
+                [value]="searchTerm()"
+                (input)="onSearchChange($any($event.target).value)"
+                class="input-field pl-11"
+              />
+            </div>
+          </div>
+        </div>
+
+      <!-- Empty State - filtro sem resultados -->
+      @if (allClients().length > 0 && filteredClients().length === 0) {
+        <app-empty-state
+          icon="🔍"
+          title="Nenhum cliente encontrado"
+          description="Tente ajustar os filtros ou a busca."
+        />
+      }
+
+      <!-- Clients List -->
+      @if (filteredClients().length > 0) {
+        <!-- Desktop: Tabela -->
+        <div class="hidden md:block card shadow-sm overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="table-header">Nome</th>
+                <th class="table-header">WhatsApp</th>
+                <th class="table-header text-center">Score</th>
+                <th class="table-header">Último Contato</th>
+                <th class="table-header text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (client of filteredClients(); track trackById($index, client)) {
+                <tr class="table-row">
+                  <td class="table-cell">
+                    <div class="font-medium text-gray-900">{{ client.name }}</div>
+                  </td>
+                  <td class="table-cell">
+                    <div class="text-gray-600">{{ client.whatsapp || '-' }}</div>
+                  </td>
+                  <td class="table-cell text-center">
+                    @if (client.score !== undefined) {
+                      <div class="flex justify-center">
+                        <app-score-badge 
+                          [score]="client.score" 
+                          [scoreLabel]="client.scoreLabel"
+                          [scoreTier]="client.scoreTier" />
+                      </div>
+                    } @else {
+                      <span class="text-gray-400">—</span>
+                    }
+                  </td>
+                  <td class="table-cell">
+                    <div class="text-gray-600">há {{ getDaysSinceLastContact(client.lastContactAt) }} dia(s)</div>
+                  </td>
+                  <td class="table-cell text-right">
+                    <div class="flex justify-end gap-2">
+                      <a
+                        [routerLink]="['/app/clientes', client.id]"
+                        class="btn-primary px-3 py-1.5 text-sm"
+                      >
+                        Abrir
+                      </a>
+                      <button
+                        (click)="openWhatsApp(client, $event)"
+                        class="btn-success px-3 py-1.5 text-sm"
+                        [disabled]="!client.whatsapp"
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile: Cards -->
+        <div class="md:hidden space-y-3">
+          @for (client of filteredClients(); track trackById($index, client)) {
+            <div class="card-hover">
+              <div class="card-body">
+                <div class="mb-4">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ client.name }}</h3>
+                  <div class="flex items-center gap-3 mb-2">
+                    <p class="text-sm text-gray-600">{{ client.whatsapp || 'Sem WhatsApp' }}</p>
+                    @if (client.score !== undefined) {
+                      <app-score-badge 
+                        [score]="client.score" 
+                        [scoreLabel]="client.scoreLabel"
+                        [scoreTier]="client.scoreTier" />
+                    }
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    <span>Último contato: há {{ getDaysSinceLastContact(client.lastContactAt) }} dia(s)</span>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <a
+                    [routerLink]="['/app/clientes', client.id]"
+                    class="btn-primary flex-1 text-center text-sm"
+                  >
+                    Abrir
+                  </a>
+                  <button
+                    (click)="openWhatsApp(client, $event)"
+                    class="btn-success flex-1 text-sm"
+                    [disabled]="!client.whatsapp"
+                  >
+                    WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      }
+    }
+  </div>
+</div>

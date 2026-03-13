@@ -1,0 +1,306 @@
+<div class="min-h-screen bg-gray-50 pb-20">
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="px-4 py-4">
+      <div class="flex items-center gap-3">
+        <button 
+          (click)="cancel()"
+          class="text-gray-600 hover:text-gray-900"
+          type="button"
+          aria-label="Voltar">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="text-xl font-semibold text-gray-900">Novo Produto</h1>
+      </div>
+    </div>
+  </header>
+
+  <!-- Form -->
+  <div class="p-4">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        
+        <!-- Nome -->
+        <div class="mb-4">
+          <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">
+            Nome do Produto *
+          </label>
+          <input
+            id="nome"
+            type="text"
+            formControlName="nome"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Ex: Anel de Ouro 18K"
+          />
+          @if (form.get('nome')?.invalid && form.get('nome')?.touched) {
+            <p class="mt-1 text-sm text-red-600">Nome é obrigatório (mínimo 2 caracteres)</p>
+          }
+        </div>
+
+        <!-- Descrição -->
+        <div class="mb-4">
+          <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">
+            Descrição
+          </label>
+          <textarea
+            id="descricao"
+            formControlName="descricao"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Descrição detalhada do produto para a vitrine"
+          ></textarea>
+        </div>
+
+        <!-- Tipo -->
+        <div class="mb-4">
+          <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">
+            Tipo *
+          </label>
+          <select
+            id="tipo"
+            formControlName="tipo"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            @for (type of productTypes; track type) {
+              <option [value]="type">{{ getTypeLabel(type) }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Material -->
+        <div class="mb-4">
+          <label for="material" class="block text-sm font-medium text-gray-700 mb-1">
+            Material *
+          </label>
+          <select
+            id="material"
+            formControlName="material"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            @for (material of productMaterials; track material) {
+              <option [value]="material">{{ getMaterialLabel(material) }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Preço -->
+        <div class="mb-4">
+          <label for="preco" class="block text-sm font-medium text-gray-700 mb-1">
+            Preço (R$) *
+          </label>
+          <input
+            id="preco"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="preco"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0.00"
+          />
+          @if (form.get('preco')?.invalid && form.get('preco')?.touched) {
+            <p class="mt-1 text-sm text-red-600">Preço deve ser maior que zero</p>
+          }
+        </div>
+
+        <!-- Preço Promocional -->
+        <div class="mb-4">
+          <label for="precoPromocional" class="block text-sm font-medium text-gray-700 mb-1">
+            Preço Promocional (R$)
+          </label>
+          <input
+            id="precoPromocional"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="precoPromocional"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0.00"
+          />
+          <p class="mt-1 text-xs text-gray-500">Opcional - Preço com desconto para exibir na vitrine</p>
+        </div>
+
+        <!-- Quantidade -->
+        <div class="mb-4">
+          <label for="quantidadeDisponivel" class="block text-sm font-medium text-gray-700 mb-1">
+            Quantidade disponível *
+          </label>
+          <input
+            id="quantidadeDisponivel"
+            type="number"
+            min="0"
+            formControlName="quantidadeDisponivel"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0"
+          />
+          @if (form.get('quantidadeDisponivel')?.invalid && form.get('quantidadeDisponivel')?.touched) {
+            <p class="mt-1 text-sm text-red-600">Quantidade é obrigatória (mínimo 0)</p>
+          }
+        </div>
+
+        <!-- SEÇÃO: Detalhes da Vitrine -->
+        <div class="my-6 border-t pt-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">📱 Detalhes da Vitrine</h3>
+          
+          <!-- Categoria -->
+          <div class="mb-4">
+            <label for="categoriaVitrine" class="block text-sm font-medium text-gray-700 mb-1">
+              Categoria (Vitrine) *
+            </label>
+            <select
+              id="categoriaVitrine"
+              formControlName="categoriaVitrine"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Selecione uma categoria</option>
+              @for (categoria of productCategories; track categoria) {
+                <option [value]="categoria">{{ categoria }}</option>
+              }
+            </select>
+            @if (form.get('categoriaVitrine')?.invalid && form.get('categoriaVitrine')?.touched) {
+              <p class="mt-1 text-sm text-red-600">Categoria é obrigatória</p>
+            }
+            <p class="mt-1 text-xs text-gray-500">Categoria para exibir na vitrine pública</p>
+          </div>
+
+          <!-- Coleção -->
+          <div class="mb-4">
+            <label for="colecao" class="block text-sm font-medium text-gray-700 mb-1">
+              Coleção
+            </label>
+            <input
+              id="colecao"
+              type="text"
+              formControlName="colecao"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Verão 2026, Noivas, Clássica"
+            />
+            <p class="mt-1 text-xs text-gray-500">Nome da coleção a qual o produto pertence</p>
+          </div>
+
+          <!-- Cor e Tamanho (grid 2 colunas) -->
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <!-- Cor -->
+            <div>
+              <label for="cor" class="block text-sm font-medium text-gray-700 mb-1">
+                Cor
+              </label>
+              <input
+                id="cor"
+                type="text"
+                formControlName="cor"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: Dourado, Prateado"
+              />
+            </div>
+
+            <!-- Tamanho -->
+            <div>
+              <label for="tamanho" class="block text-sm font-medium text-gray-700 mb-1">
+                Tamanho
+              </label>
+              <input
+                id="tamanho"
+                type="text"
+                formControlName="tamanho"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: P, M, G, 16, 18"
+              />
+            </div>
+          </div>
+
+          <!-- Video URL -->
+          <div class="mb-4">
+            <label for="urlVideo" class="block text-sm font-medium text-gray-700 mb-1">
+              URL do Vídeo
+            </label>
+            <input
+              id="urlVideo"
+              type="url"
+              formControlName="urlVideo"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="https://youtube.com/watch?v=..."
+            />
+            <p class="mt-1 text-xs text-gray-500">Link para vídeo do produto (YouTube, Vimeo, etc.)</p>
+          </div>
+
+          <!-- Selos/Flags -->
+          <div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm font-medium text-gray-700 mb-2">🏷️ Selos e Destaques</p>
+            
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 select-none w-full">
+              <input type="checkbox" class="h-4 w-4 text-blue-600" formControlName="maisVendido" />
+              <span>⭐ Mais Vendido - Exibe selo "MAIS VENDIDO" no card</span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 select-none w-full">
+              <input type="checkbox" class="h-4 w-4 text-blue-600" formControlName="novidade" />
+              <span>✨ Novidade - Exibe selo "NOVIDADE" no card</span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 select-none w-full">
+              <input type="checkbox" class="h-4 w-4 text-blue-600" formControlName="promocao" />
+              <span>🏷️ Promoção - Exibe selo "PROMOÇÃO" animado no card</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Photo URL -->
+        <div class="mb-4">
+          <label for="urlFoto" class="block text-sm font-medium text-gray-700 mb-1">
+            URL da Foto
+          </label>
+          <input
+            id="urlFoto"
+            type="url"
+            formControlName="urlFoto"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="https://exemplo.com/foto.jpg"
+          />
+          <p class="mt-1 text-xs text-gray-500">Opcional - usada nos cards e no compartilhamento</p>
+        </div>
+
+        <!-- Observações -->
+        <div class="mb-4">
+          <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-1">
+            Observações
+          </label>
+          <textarea
+            id="observacoes"
+            formControlName="observacoes"
+            rows="4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Detalhes, medidas, condições, etc."
+          ></textarea>
+        </div>
+
+        <!-- Ativo -->
+        <div class="mb-6">
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
+            <input type="checkbox" class="h-4 w-4" formControlName="active" />
+            Produto ativo
+          </label>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            [disabled]="form.invalid"
+            class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

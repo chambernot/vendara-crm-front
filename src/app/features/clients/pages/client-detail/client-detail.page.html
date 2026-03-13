@@ -1,0 +1,575 @@
+<div class="min-h-screen bg-gray-50 p-4 sm:p-6">
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="bg-white rounded-lg shadow p-6 text-center">
+      <p class="text-gray-500">Carregando detalhes do cliente...</p>
+    </div>
+  }
+
+  <!-- Not Found State -->
+  @if (notFound() && !loading()) {
+    <app-empty-state
+      icon="❌"
+      title="Cliente não encontrado"
+      description="O cliente que você procura não existe ou foi removido."
+    />
+    <div class="mt-4 text-center">
+      <button
+        (click)="goBack()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Voltar para Clientes
+      </button>
+    </div>
+  }
+
+  <!-- Main Content -->
+  @if (clientDetail() && !loading()) {
+    <!-- Back Button + Edit Toggle -->
+    <div class="mb-4 flex items-center justify-between">
+      <button
+        (click)="goBack()"
+        class="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+      >
+        <span>←</span>
+        <span>Voltar</span>
+      </button>
+
+      @if (!isEditMode()) {
+        <button
+          (click)="enterEditMode()"
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+        >
+          <span>✏️</span>
+          <span>Editar</span>
+        </button>
+      } @else {
+        <div class="flex gap-2">
+          <button
+            (click)="cancelEdit()"
+            [disabled]="isSaving()"
+            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancelar
+          </button>
+          <button
+            (click)="saveClient()"
+            [disabled]="isSaving()"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSaving()) {
+              <span class="animate-spin">⏳</span>
+              <span>Salvando...</span>
+            } @else {
+              <span>💾</span>
+              <span>Salvar</span>
+            }
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Validation Error -->
+    @if (validationError()) {
+      <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-sm text-red-700 font-medium flex items-start gap-2">
+          <span class="text-lg">❌</span>
+          <span>{{ validationError() }}</span>
+        </p>
+      </div>
+    }
+
+    <!-- A) CABEÇALHO -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      @if (!isEditMode()) {
+        <!-- View Mode -->
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex-1">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              {{ clientDetail()!.client.name }}
+            </h1>
+            @if (clientDetail()!.client.whatsapp) {
+              <button
+                (click)="openWhatsApp()"
+                class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              >
+                <span>📱</span>
+                <span>{{ clientDetail()!.client.whatsapp }}</span>
+              </button>
+            }
+          </div>
+          <app-score-badge 
+            [score]="clientDetail()!.client.score" 
+            [scoreLabel]="clientDetail()!.client.scoreLabel"
+            [scoreTier]="clientDetail()!.client.scoreTier" />
+        </div>
+
+        <!-- Botão Nova Mensagem (destaque) -->
+        <button
+          (click)="openMessageComposer()"
+          class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+        >
+          💬 Nova Mensagem
+        </button>
+      } @else {
+        <!-- Edit Mode -->
+        <form [formGroup]="editForm" class="space-y-4">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1 space-y-4">
+              <!-- Name Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Nome <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  placeholder="Nome do cliente"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [class.border-red-500]="editForm.get('name')?.invalid && editForm.get('name')?.touched"
+                />
+                @if (editForm.get('name')?.invalid && editForm.get('name')?.touched) {
+                  <p class="text-xs text-red-600 mt-1">Nome é obrigatório (mínimo 2 caracteres)</p>
+                }
+              </div>
+
+              <!-- WhatsApp Input -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  WhatsApp <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  formControlName="whatsapp"
+                  placeholder="+55 11 99999-9999"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [class.border-red-500]="editForm.get('whatsapp')?.invalid && editForm.get('whatsapp')?.touched"
+                />
+                @if (editForm.get('whatsapp')?.invalid && editForm.get('whatsapp')?.touched) {
+                  <p class="text-xs text-red-600 mt-1">WhatsApp é obrigatório</p>
+                }
+              </div>
+            </div>
+            <div class="ml-4">
+              <app-score-badge 
+                [score]="clientDetail()!.client.score" 
+                [scoreLabel]="clientDetail()!.client.scoreLabel"
+                [scoreTier]="clientDetail()!.client.scoreTier" />
+            </div>
+          </div>
+
+          <!-- Notes Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Observações
+            </label>
+            <textarea
+              formControlName="notes"
+              placeholder="Observações sobre o cliente..."
+              rows="3"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Last Contact Date Input -->
+          <div>
+            <label for="lastContactAt" class="block text-sm font-medium text-gray-700 mb-1">
+              Data do último contato
+            </label>
+            <input
+              id="lastContactAt"
+              type="date"
+              formControlName="lastContactAt"
+              title="Data do último contato"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <!-- WhatsApp Opt-in Toggle -->
+          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div class="flex-1">
+              <p class="font-medium text-gray-900">Autorização WhatsApp</p>
+              <p class="text-sm text-gray-600 mt-1">
+                Cliente consentiu em receber mensagens
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="editForm.patchValue({ whatsappOptIn: !editForm.get('whatsappOptIn')?.value })"
+              [class]="editForm.get('whatsappOptIn')?.value ? 'bg-green-500' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              [title]="editForm.get('whatsappOptIn')?.value ? 'Desativar autorização' : 'Ativar autorização'"
+            >
+              <span class="sr-only">Alternar autorização do WhatsApp</span>
+              <span
+                [class]="editForm.get('whatsappOptIn')?.value ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              ></span>
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+
+    <!-- B) OBSERVAÇÕES (apenas no modo visualização) -->
+    @if (!isEditMode()) {
+      <div class="bg-white rounded-lg shadow p-6 mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">📝 Observações</h2>
+        <textarea
+          [(ngModel)]="notes"
+          (blur)="saveNotes()"
+          placeholder="Adicione observações sobre este cliente..."
+          rows="4"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+        ></textarea>
+        <p class="text-xs text-gray-500 mt-2">💡 As observações são salvas automaticamente</p>
+      </div>
+    }
+
+    <!-- C) TAGS -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-gray-900">🏷️ Tags</h2>
+        <button
+          (click)="openTagSelectorModal()"
+          class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
+          Aplicar Tags
+        </button>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        @for (tagSlug of clientDetail()!.client.tags; track tagSlug) {
+          @if (getTagDefinition(tagSlug); as tagDef) {
+            <span [class]="tagDef.color" class="px-3 py-1.5 text-sm font-medium rounded-full border-2 flex items-center gap-2">
+              {{ tagDef.label }}
+              <button
+                type="button"
+                (click)="removeTag(tagSlug)"
+                class="hover:opacity-75 font-bold text-base leading-none"
+                title="Remover tag"
+              >
+                ×
+              </button>
+            </span>
+          } @else {
+            <span class="px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full border-2 border-gray-300 flex items-center gap-2">
+              {{ tagSlug }}
+              <button
+                type="button"
+                (click)="removeTag(tagSlug)"
+                class="hover:opacity-75 font-bold text-base leading-none"
+                title="Remover tag"
+              >
+                ×
+              </button>
+            </span>
+          }
+        }
+        @if (clientDetail()!.client.tags.length === 0) {
+          <span class="text-sm text-gray-500 italic">Nenhuma tag aplicada</span>
+        }
+      </div>
+    </div>
+
+    <!-- D) RESUMO -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">📊 Resumo</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Total de Compras -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-1">Total de Compras</p>
+          <p class="text-2xl font-bold text-gray-900">
+            {{ clientDetail()!.sales.length }}
+          </p>
+        </div>
+
+        <!-- Valor Total -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-1">Valor Total</p>
+          <p class="text-2xl font-bold text-gray-900">
+            @if (clientDetail()!.insight.totalPurchasedValue && !isNaN(clientDetail()!.insight.totalPurchasedValue)) {
+              {{ formatCurrency(clientDetail()!.insight.totalPurchasedValue) }}
+            } @else {
+              R$ 0,00
+            }
+          </p>
+        </div>
+
+        <!-- Última Compra -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-1">Última Compra</p>
+          <p class="text-lg font-semibold text-gray-900">
+            @if (clientDetail()!.insight.lastPurchaseAt) {
+              {{ formatDate(clientDetail()!.insight.lastPurchaseAt!) }}
+            } @else {
+              -
+            }
+          </p>
+        </div>
+
+        <!-- Score -->
+        <div class="bg-gray-50 p-4 rounded-lg col-span-1 sm:col-span-2 lg:col-span-1">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-sm text-gray-600 font-medium">Score do Cliente</p>
+            <button
+              (click)="refreshScore()"
+              [disabled]="refreshingScore()"
+              class="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-wait flex items-center gap-1"
+              title="Atualizar score manualmente"
+            >
+              @if (refreshingScore()) {
+                <span class="animate-spin inline-block">⏳</span>
+              } @else {
+                <span>🔄</span>
+              }
+              <span>Atualizar</span>
+            </button>
+          </div>
+          
+          <!-- Score Value & Tier -->
+          <div class="flex items-center gap-3 mb-3">
+            <p class="text-3xl font-bold text-gray-900">
+              {{ clientDetail()!.client.score }}
+            </p>
+            <app-score-badge 
+              [score]="clientDetail()!.client.score" 
+              [scoreLabel]="clientDetail()!.client.scoreLabel"
+              [scoreTier]="clientDetail()!.client.scoreTier" />
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="mb-3">
+            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div 
+                class="h-2.5 rounded-full transition-all duration-500"
+                [class.bg-blue-500]="clientDetail()!.client.scoreTier === 'COLD'"
+                [class.bg-yellow-500]="clientDetail()!.client.scoreTier === 'WARM'"
+                [class.bg-red-500]="clientDetail()!.client.scoreTier === 'HOT'"
+                [style.width.%]="clientDetail()!.client.score"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Tier Description -->
+          <p class="text-xs text-gray-600 mb-2">
+            @if (clientDetail()!.client.scoreTier === 'HOT') {
+              <span class="font-semibold text-red-700">🔥 Quente:</span> Alta chance de compra
+            } @else if (clientDetail()!.client.scoreTier === 'WARM') {
+              <span class="font-semibold text-yellow-700">☀️ Morno:</span> Potencial moderado
+            } @else {
+              <span class="font-semibold text-blue-700">❄️ Frio:</span> Necessita aquecimento
+            }
+          </p>
+
+          <!-- Score Breakdown Accordion -->
+          @if (clientDetail()!.client.scoreBreakdown && clientDetail()!.client.scoreBreakdown!.length > 0) {
+            <button
+              (click)="toggleScoreBreakdown()"
+              class="w-full text-left text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-1"
+            >
+              <span [class.rotate-90]="scoreBreakdownOpen()" class="inline-block transition-transform duration-200">▶</span>
+              <span>Detalhamento do Score ({{ clientDetail()!.client.scoreBreakdown!.length }} itens)</span>
+            </button>
+            @if (scoreBreakdownOpen()) {
+              <div class="mt-1 space-y-1 border-t border-gray-200 pt-2">
+                @for (item of clientDetail()!.client.scoreBreakdown!; track item.label) {
+                  <div class="flex items-start justify-between text-xs">
+                    <div class="flex-1 min-w-0">
+                      <span class="text-gray-700">{{ item.label }}</span>
+                      @if (item.detail) {
+                        <span class="text-gray-400 ml-1 truncate" [title]="item.detail">· {{ item.detail }}</span>
+                      }
+                    </div>
+                    <span
+                      [class]="item.points >= 0 ? 'text-green-600 font-semibold ml-2 whitespace-nowrap' : 'text-red-600 font-semibold ml-2 whitespace-nowrap'"
+                    >
+                      {{ item.points >= 0 ? '+' : '' }}{{ item.points }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          } @else {
+            <p class="text-xs text-gray-400 italic">Sem detalhamento disponível</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- E) HISTÓRICO -->
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">📜 Histórico</h2>
+      
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-200 mb-4">
+        <button
+          (click)="activeHistoryTab.set('compras')"
+          [class.border-blue-600]="activeHistoryTab() === 'compras'"
+          [class.text-blue-600]="activeHistoryTab() === 'compras'"
+          [class.border-transparent]="activeHistoryTab() !== 'compras'"
+          [class.text-gray-500]="activeHistoryTab() !== 'compras'"
+          class="px-4 py-2 border-b-2 font-medium transition-colors"
+        >
+          💰 Compras
+        </button>
+        <button
+          (click)="activeHistoryTab.set('mensagens')"
+          [class.border-blue-600]="activeHistoryTab() === 'mensagens'"
+          [class.text-blue-600]="activeHistoryTab() === 'mensagens'"
+          [class.border-transparent]="activeHistoryTab() !== 'mensagens'"
+          [class.text-gray-500]="activeHistoryTab() !== 'mensagens'"
+          class="px-4 py-2 border-b-2 font-medium transition-colors"
+        >
+          💬 Mensagens
+        </button>
+      </div>
+
+      <!-- Tab: Compras -->
+      @if (activeHistoryTab() === 'compras') {
+        <div>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-medium text-gray-700">Últimas 10 compras</h3>
+            <button
+              (click)="registerSale()"
+              class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+            >
+              + Registrar Venda
+            </button>
+          </div>
+          
+          @if (clientDetail()!.sales && clientDetail()!.sales.length > 0) {
+            <div class="space-y-2">
+              @for (sale of clientDetail()!.sales.slice(0, 10); track sale.id) {
+                <div class="border border-gray-200 rounded-lg p-3">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <p class="font-medium text-gray-900">{{ formatCurrency(sale.amount || sale.total || sale.totalAmount || 0) }}</p>
+                      @if (sale.description) {
+                        <p class="text-sm text-gray-600">{{ sale.description }}</p>
+                      }
+                    </div>
+                    <p class="text-xs text-gray-500">{{ formatDate(sale.date || sale.createdAt) }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <app-empty-state
+              icon="💰"
+              title="Nenhuma compra registrada"
+              description="Registre a primeira venda deste cliente."
+            />
+          }
+        </div>
+      }
+
+      <!-- Tab: Mensagens -->
+      @if (activeHistoryTab() === 'mensagens') {
+        <div>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-medium text-gray-700">Últimas 10 mensagens</h3>
+            <a
+              [routerLink]="['/app/mensagens', clientDetail()!.client.id]"
+              class="text-sm text-purple-600 hover:text-purple-800 font-medium"
+            >
+              Ver conversa completa →
+            </a>
+          </div>
+
+          <!-- Loading -->
+          @if (loadingMessages()) {
+            <div class="space-y-2">
+              @for (i of [1,2,3]; track i) {
+                <div class="border border-gray-200 rounded-lg p-3 animate-pulse">
+                  <div class="flex items-start gap-2">
+                    <div class="w-6 h-6 bg-gray-200 rounded"></div>
+                    <div class="flex-1">
+                      <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div class="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          
+          @if (!loadingMessages() && clientMessages() && clientMessages().length > 0) {
+            <div class="space-y-2">
+              @for (message of clientMessages().slice(0, 10); track message.id) {
+                <div class="border border-gray-200 rounded-lg p-3">
+                  <div class="flex items-start gap-2 mb-1">
+                    @if (message.direction === 'outbound') {
+                      <span class="text-blue-600">📤</span>
+                    } @else {
+                      <span class="text-green-600">📥</span>
+                    }
+                    <div class="flex-1">
+                      <p class="text-sm text-gray-900">{{ message.textPreview || '(sem texto)' }}</p>
+                      <div class="flex items-center gap-2 mt-1 flex-wrap">
+                        <p class="text-xs text-gray-500">{{ formatDate(message.createdAt) }}</p>
+                        <span 
+                          [class]="'px-2 py-0.5 text-xs rounded font-medium flex items-center gap-1 ' + getMessageStatusClass(message.status)"
+                          [class.animate-pulse]="message.status === 'queued' || message.status === 'intent'"
+                        >
+                          <span>{{ getMessageStatusIcon(message.status) }}</span>
+                          <span>{{ getMessageStatusLabel(message.status) }}</span>
+                        </span>
+                        @if (message.provider === 'meta') {
+                          <span class="px-2 py-0.5 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            Meta
+                          </span>
+                        }
+                        @if (message.failureReason) {
+                          <span 
+                            class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200 cursor-help flex items-center gap-1" 
+                            [title]="message.failureReason"
+                          >
+                            <span>⚠️</span>
+                            <span>Erro: {{ message.failureReason.substring(0, 30) }}{{ message.failureReason.length > 30 ? '...' : '' }}</span>
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (!loadingMessages()) {
+            <app-empty-state
+              icon="💬"
+              title="Nenhuma mensagem"
+              description="Envie a primeira mensagem para este cliente."
+            />
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Message Composer Modal -->
+@if (isComposerOpen()) {
+  <app-message-composer
+    [isOpen]="isComposerOpen()"
+    [context]="composerContext()"
+    (closed)="onComposerClosed()"
+    (sent)="onComposerMessageSent($event)"
+  />
+}
+
+<!-- Sale Form Modal -->
+@if (isSaleModalOpen() && clientDetail()) {
+  <app-sale-form
+    [clientId]="clientDetail()!.client.id"
+    (saleCreated)="onSaleCreated($event)"
+    (cancel)="closeSaleForm()"
+  />
+}
+
+<!-- Tag Selector Modal -->
+<app-tag-selector-modal
+  [isOpen]="isTagSelectorModalOpen()"
+  [appliedTags]="clientDetail()?.client?.tags || []"
+  (closed)="closeTagSelectorModal()"
+  (tagSelected)="onTagSelected($event)"
+/>

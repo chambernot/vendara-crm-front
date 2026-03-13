@@ -1,0 +1,532 @@
+@if (isOpen) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end md:items-center justify-center p-0 md:p-4">
+    <div
+      class="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div>
+          <h2 class="text-lg font-bold text-gray-900">{{ composerTitle }}</h2>
+          @if (mode() === 'central' && contextSignal()?.followUpId) {
+            <p class="text-xs text-purple-600 mt-0.5">Follow-up sera concluido automaticamente apos envio</p>
+          }
+        </div>
+        <button
+          (click)="onClose()"
+          [disabled]="sending()"
+          class="p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-50"
+          type="button"
+          aria-label="Fechar"
+        >
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+        <!-- ========== Success ========== -->
+        @if (sendSuccess()) {
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-8 h-8 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <h3 class="text-green-900 font-semibold">Mensagem enviada!</h3>
+                <p class="text-green-700 text-sm mt-1">
+                  @if (mode() === 'central') {
+                    Mensagem enviada e follow-up concluido.
+                  } @else {
+                    A mensagem foi enviada com sucesso.
+                  }
+                </p>
+                @if (sentMessageId() && selectedClient()) {
+                  <a
+                    [routerLink]="['/app/clientes', selectedClient()!.id]"
+                    fragment="messages"
+                    class="inline-flex items-center gap-1 mt-2 text-sm font-medium text-green-800 hover:underline"
+                  >
+                    Ver historico
+                  </a>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ========== Error ========== -->
+        @if (errorMessage()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-red-700 text-sm">{{ errorMessage() }}</p>
+          </div>
+        }
+
+        <!-- ========== CLIENTE (modo free: seletor / outros: info fixa) ========== -->
+        @if (mode() === 'free') {
+          <!-- Modo Livre: Seletor de cliente -->
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
+
+            @if (!selectedClient()) {
+              <button
+                (click)="onSelectClient()"
+                [disabled]="sending()"
+                class="w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
+                type="button"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                Selecionar Cliente
+              </button>
+            } @else {
+              <div class="bg-white border border-gray-300 rounded-lg p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-semibold text-gray-900">{{ selectedClient()!.name }}</h4>
+                  <app-score-badge [score]="selectedClient()!.score" />
+                  @if (selectedClient()!.whatsapp) {
+                    <span class="text-sm text-gray-500">{{ selectedClient()!.whatsapp }}</span>
+                  }
+                </div>
+                <button
+                  (click)="onSelectClient()"
+                  [disabled]="sending()"
+                  class="text-blue-600 hover:text-blue-700 text-sm font-medium hover:underline disabled:opacity-50"
+                  type="button"
+                >
+                  Trocar
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Modo Client / Central: info fixa do cliente -->
+          @if (loadingClient()) {
+            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center gap-2 text-gray-500">
+              <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+              <span class="text-sm">Carregando cliente...</span>
+            </div>
+          } @else if (selectedClient()) {
+            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <div class="flex items-center gap-2">
+                <h4 class="font-semibold text-gray-900">{{ selectedClient()!.name }}</h4>
+                <app-score-badge [score]="selectedClient()!.score" />
+                @if (selectedClient()!.whatsapp) {
+                  <span class="text-sm text-gray-500">{{ selectedClient()!.whatsapp }}</span>
+                } @else {
+                  <span class="text-sm text-red-600">Sem WhatsApp</span>
+                }
+                @if (daysSinceLastContact() !== null) {
+                  <span class="text-xs text-gray-400 ml-auto">Ultimo contato: {{ daysSinceLastContact() }}d</span>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        <!-- ========== TEMPLATE (opcional) ========== -->
+        @if (templateSuggestion()) {
+          <div class="border border-green-200 rounded-lg p-3 bg-green-50">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+              </svg>
+              <div>
+                <p class="text-sm font-semibold text-green-800">
+                  Sugestao: {{ templateSuggestion()!.templateName }}
+                </p>
+                @if (templateSuggestionReason()) {
+                  <p class="text-xs text-green-600 mt-0.5">Motivo: {{ templateSuggestionReason() }}</p>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ========== META TEMPLATE REQUIRED WARNING ========== -->
+        @if (requiresTemplate()) {
+          <div class="bg-orange-50 border border-orange-300 rounded-lg p-3">
+            <div class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-orange-800">Template obrigatório</p>
+                <p class="text-xs text-orange-700 mt-1">
+                  Para iniciar conversa ou enviar mensagem fora da janela de 24h, você deve usar um template aprovado.
+                </p>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ========== TEMPLATE REQUIREMENT WARNING ========== -->
+        @if (selectedClient() && requiresTemplate()) {
+            <div class="bg-red-50 border border-red-300 rounded-lg p-3">
+              <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-red-800">Fora da janela de atendimento</p>
+                  <p class="text-xs text-red-700 mt-1">
+                    O cliente não interagiu nas últimas 24h. Envie um template oficial aprovado.
+                  </p>
+                  <p class="text-xs text-red-600 mt-2 font-medium">
+                    ⚠️ Mensagens de texto livre serão bloqueadas. Use o template: vendara_contato_inicial
+                  </p>
+                </div>
+              </div>
+            </div>
+        }
+
+        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <label for="template-select" class="block text-sm font-semibold text-gray-700 mb-2">
+            Template @if (requiresTemplate()) {<span class="text-red-600">*</span>} @else {(opcional)}
+          </label>
+          <select
+            id="template-select"
+            [value]="selectedTemplateId()"
+            (change)="onTemplateChange($event)"
+            [disabled]="sending()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+          >
+            @if (!requiresTemplate()) {
+              <option value="">-- Nenhum (texto livre) --</option>
+            } @else {
+              <option value="">-- Selecione um template aprovado --</option>
+            }
+            @for (template of templates(); track template.id) {
+              <option [value]="template.id">
+                {{ template.name }}
+                @if (template.isApproved) { ✅ }
+              </option>
+            }
+          </select>
+          @if (templates().length === 0) {
+            <p class="text-xs text-red-600 mt-2">
+              Nenhum template aprovado disponível.
+            </p>
+          }
+        </div>
+
+        <!-- ========== SELETOR DE PRODUTO ========== -->
+        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Produto <span class="text-gray-500 font-normal">(opcional)</span>
+          </label>
+          
+          @if (!selectedProduct()) {
+            <button
+              (click)="onSelectProduct()"
+              [disabled]="sending()"
+              class="w-full px-4 py-3 border-2 border-dashed border-purple-300 rounded-lg text-purple-600 hover:border-purple-500 hover:bg-purple-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
+              type="button"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Adicionar Produto ao Template
+            </button>
+            <p class="text-xs text-gray-500 mt-2">
+              Use variáveis no template: produto_nome, produto_preco, link_vitrine (use chaves duplas)
+            </p>
+          } @else {
+            <div class="bg-white border border-gray-300 rounded-lg p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <h4 class="font-semibold text-gray-900 mb-1">{{ selectedProduct()!.name }}</h4>
+                  <div class="flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{{ selectedProduct()!.type }}</span>
+                    <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{{ selectedProduct()!.material }}</span>
+                    <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-semibold">
+                      {{ selectedProduct()!.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  (click)="onRemoveProduct()"
+                  [disabled]="sending()"
+                  class="text-red-600 hover:text-red-700 p-1 hover:bg-red-50 rounded disabled:opacity-50"
+                  type="button"
+                  title="Remover produto"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- ========== TEXTO DA MENSAGEM ========== -->
+        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <label for="message-text" class="block text-sm font-semibold text-gray-700 mb-2">
+            Mensagem
+            @if (selectedTemplateId()) {
+              <span class="text-xs text-orange-600 font-normal ml-2">(Template selecionado - não editável)</span>
+            }
+          </label>
+          <textarea
+            id="message-text"
+            rows="5"
+            placeholder="Digite sua mensagem..."
+            [value]="messageText()"
+            (input)="onMessageTextChange($event)"
+            [disabled]="sending() || !!selectedTemplateId()"
+            [class.bg-gray-200]="!!selectedTemplateId()"
+            [class.cursor-not-allowed]="!!selectedTemplateId()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 resize-y"
+          ></textarea>
+          @if (selectedTemplateId()) {
+            <p class="text-xs text-orange-600 mt-1">
+              ℹ️ Template aplicado. Para editar, remova o template selecionando "Nenhum (texto livre)"
+            </p>
+          } @else if (requiresTemplate()) {
+            <p class="text-xs text-red-600 mt-1">
+              ⚠️ Campo bloqueado: Selecione um template aprovado para continuar
+            </p>
+          } @else {
+            <p class="text-xs text-gray-400 mt-1 text-right">{{ messageText().length }} caracteres</p>
+          }
+        </div>
+
+        <!-- ========== COMPLIANCE WARNING ========== -->
+        @if (complianceWarning()) {
+          <div
+            [class]="
+              complianceWarning()!.type === 'error' ? 'bg-red-50 border-red-300 text-red-700' :
+              complianceWarning()!.type === 'info' ? 'bg-blue-50 border-blue-300 text-blue-700' :
+              'bg-orange-50 border-orange-300 text-orange-700'
+            "
+            class="border rounded-lg p-3 text-sm"
+          >
+            <p class="font-semibold">{{ complianceWarning()!.title }}</p>
+            <p class="text-xs mt-1">{{ complianceWarning()!.message }}</p>
+          </div>
+        }
+
+        <!-- ========== ANALISE IA (colapsavel) ========== -->
+        @if (selectedClient() && clientAiAnalysis()) {
+          <div class="border border-purple-200 rounded-lg bg-purple-50 p-3">
+            <button
+              (click)="showAiAnalysis.set(!showAiAnalysis())"
+              class="w-full flex items-center justify-between text-sm font-semibold text-purple-700"
+              type="button"
+            >
+              <span>Analise da IA</span>
+              <svg [class.rotate-180]="showAiAnalysis()" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+
+            @if (showAiAnalysis()) {
+              <div class="mt-3 space-y-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow"
+                       [class.bg-green-500]="clientAiAnalysis()!.score.level === 'high'"
+                       [class.bg-yellow-500]="clientAiAnalysis()!.score.level === 'medium'"
+                       [class.bg-gray-400]="clientAiAnalysis()!.score.level === 'low'">
+                    {{ clientAiAnalysis()!.score.score }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">Score de Engajamento</p>
+                    <p class="text-xs text-gray-600">
+                      @if (clientAiAnalysis()!.score.level === 'high') { Alto potencial }
+                      @if (clientAiAnalysis()!.score.level === 'medium') { Potencial moderado }
+                      @if (clientAiAnalysis()!.score.level === 'low') { Baixo engajamento }
+                    </p>
+                  </div>
+                </div>
+
+                @for (reason of clientAiAnalysis()!.score.reasons.slice(0, 3); track reason.code) {
+                  <p class="text-xs text-gray-700 pl-2 border-l-2 border-purple-300">{{ reason.text }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+
+      <!-- ========== FOOTER: ENVIAR ========== -->
+      <div class="p-4 border-t border-gray-200 bg-gray-50">
+        <button
+          (click)="onSend()"
+          [disabled]="!canSendMessage() || sendSuccess()"
+          class="w-full px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+          type="button"
+        >
+          @if (sending()) {
+            <div class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+            <span>Enviando...</span>
+          } @else if (sendSuccess()) {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>Enviado!</span>
+          } @else {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            <span>Enviar via WhatsApp</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========== Client Selector Modal (modo free) ========== -->
+@if (showClientSelector()) {
+  <div class="fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4" (click)="onCloseClientSelector()">
+    <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 class="text-lg font-bold text-gray-900">Selecionar Cliente</h3>
+        <button (click)="onCloseClientSelector()" class="p-2 hover:bg-gray-100 rounded-lg" type="button" aria-label="Fechar">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4 border-b border-gray-200">
+        <input
+          type="text"
+          placeholder="Buscar por nome ou telefone..."
+          [value]="clientSearchTerm()"
+          (input)="onClientSearchChange($event)"
+          class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          autofocus
+        />
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        @if (getAllClients().length === 0) {
+          <div class="text-center py-8 text-gray-500">
+            <p class="font-medium">Nenhum cliente encontrado</p>
+          </div>
+        } @else {
+          <div class="space-y-2">
+            @for (client of getAllClients(); track trackByClientId($index, client)) {
+              <button
+                (click)="onClientSelected(client.id)"
+                class="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                type="button"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <h4 class="font-semibold text-gray-900">{{ client.name }}</h4>
+                      <app-score-badge [score]="client.score" />
+                    </div>
+                    @if (client.whatsapp) {
+                      <p class="text-sm text-gray-600">{{ client.whatsapp }}</p>
+                    } @else {
+                      <p class="text-sm text-red-600">Sem WhatsApp</p>
+                    }
+                  </div>
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========== Product Selector Modal ========== -->
+@if (showProductSelector()) {
+  <div class="fixed inset-0 bg-black bg-opacity-60 z-[70] flex items-center justify-center p-4" (click)="onCloseProductSelector()">
+    <div class="bg-white rounded-lg w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 class="text-lg font-bold text-gray-900">Selecionar Produto</h3>
+        <button (click)="onCloseProductSelector()" class="p-2 hover:bg-gray-100 rounded-lg" type="button" aria-label="Fechar">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4 border-b border-gray-200">
+        <input
+          type="text"
+          placeholder="Buscar por nome, categoria ou material..."
+          [value]="productSearchTerm()"
+          (input)="onProductSearchChange($event)"
+          class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          autofocus
+        />
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        @if (filteredProducts().length === 0) {
+          <div class="text-center py-8 text-gray-500">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <p class="font-medium">Nenhum produto encontrado</p>
+            <p class="text-sm mt-1">Tente buscar por outro termo</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @for (product of filteredProducts(); track product.id) {
+              <button
+                (click)="onProductSelected(product.id)"
+                class="text-left p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all"
+                type="button"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900 mb-2">{{ product.name }}</h4>
+                    <div class="flex flex-wrap gap-1.5 mb-2">
+                      <span class="inline-flex text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                        {{ product.type }}
+                      </span>
+                      <span class="inline-flex text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                        {{ product.material }}
+                      </span>
+                      @if (product.quantityAvailable > 0) {
+                        <span class="inline-flex text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          {{ product.quantityAvailable }} disponível
+                        </span>
+                      } @else {
+                        <span class="inline-flex text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                          Sem estoque
+                        </span>
+                      }
+                    </div>
+                    <p class="text-lg font-bold text-purple-600">
+                      {{ product.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </p>
+                  </div>
+                  <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </div>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="p-4 border-t border-gray-200 bg-gray-50">
+        <p class="text-xs text-gray-600">
+          <strong>Dica:</strong> Use variáveis no template: produto_nome, produto_preco, produto_categoria, link_vitrine (use chaves duplas ao redor)
+        </p>
+      </div>
+    </div>
+  </div>
+}

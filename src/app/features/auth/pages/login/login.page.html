@@ -1,0 +1,122 @@
+<div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+  <!-- Background with gradient and subtle pattern -->
+  <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50"></div>
+  <div class="absolute inset-0 opacity-5 pattern-dots"></div>
+  
+  <div class="w-full max-w-md relative z-10">
+    <div class="card shadow-xl">
+      <div class="card-body">
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-5 shadow-lg">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">Vendara</h1>
+          <p class="text-gray-600">Entre para continuar</p>
+        </div>
+
+        <!-- Session Expired Warning -->
+        @if (sessionExpired()) {
+          <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-5">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div>
+                <p class="text-orange-800 text-sm font-semibold">Sessão expirada</p>
+                <p class="text-orange-700 text-xs mt-1">Sua sessão expirou por inatividade. Faça login novamente para continuar.</p>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Form -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5">
+          <div class="form-group">
+            <label for="email" class="form-label">
+              Email
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+              </div>
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                placeholder="seu@email.com"
+                class="input-field pl-10"
+                [class.input-field-error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+              />
+            </div>
+            <p *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" 
+               class="form-error">
+              Por favor, insira um email válido
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">
+              Senha
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <input
+                id="password"
+                type="password"
+                formControlName="password"
+                placeholder="••••••••"
+                class="input-field pl-10"
+                [class.input-field-error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+              />
+            </div>
+            <p *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" 
+               class="form-error">
+              Senha deve ter pelo menos 6 caracteres
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="loginForm.invalid || loading"
+            class="btn-primary-lg w-full shadow-md hover:shadow-lg"
+          >
+            <span *ngIf="!loading">Entrar</span>
+            <span *ngIf="loading" class="flex items-center">
+              <svg class="spinner h-5 w-5 mr-2" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Entrando...
+            </span>
+          </button>
+
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p class="text-red-800 text-sm font-medium">{{ errorMessage }}</p>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Footer -->
+      <div class="card-footer text-center">
+        <p class="text-sm text-gray-500">
+          Sistema de gestão para joalherias
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,257 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <app-header 
+    [titulo]="'Catálogo'"
+    [buscaAtual]="searchTerm()"
+    [workspaceSlug]="workspaceSlug"
+    [todosProdutos]="produtos()"
+    (buscaChange)="onSearchChange($event)"
+    (whatsappClick)="abrirWhatsAppGeral()"
+  />
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Cabeçalho do Catálogo -->
+    <div class="mb-8">
+      <h1 class="font-serif text-3xl md:text-4xl tracking-wider text-gray-900 mb-2">
+        Nosso Catálogo
+      </h1>
+      <p class="text-gray-600">
+        {{ produtosFiltrados().length }} {{ produtosFiltrados().length === 1 ? 'produto encontrado' : 'produtos encontrados' }}
+      </p>
+    </div>
+
+    <div class="flex gap-8">
+      <!-- Filtros Laterais (Desktop) -->
+      <aside class="hidden lg:block w-64 flex-shrink-0">
+        <div class="sticky top-24">
+          <div class="bg-white p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
+              <button
+                (click)="clearFilters()"
+                class="text-xs text-gray-600 hover:text-gray-900 uppercase tracking-wider"
+              >
+                Limpar
+              </button>
+            </div>
+
+            <!-- Categoria -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-900 mb-3">Categoria</label>
+              <select
+                [(ngModel)]="selectedCategory"
+                aria-label="Filtrar por categoria"
+                class="w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+              >
+                @for (cat of categories; track cat) {
+                  <option [value]="cat">{{ getCategoryLabel(cat) }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Material -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-900 mb-3">Material</label>
+              <select
+                [(ngModel)]="selectedMaterial"
+                aria-label="Filtrar por material"
+                class="w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+              >
+                @for (mat of materials; track mat) {
+                  <option [value]="mat">{{ getMaterialLabel(mat) }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Faixa de Preço -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-900 mb-3">Faixa de Preço</label>
+              <div class="flex gap-2 items-center">
+                <input
+                  type="number"
+                  [(ngModel)]="priceMin"
+                  placeholder="Min"
+                  class="w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+                />
+                <span class="text-gray-500">-</span>
+                <input
+                  type="number"
+                  [(ngModel)]="priceMax"
+                  placeholder="Max"
+                  class="w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Área Principal -->
+      <main class="flex-1">
+        <!-- Barra de Ordenação e Filtros Mobile -->
+        <div class="flex items-center justify-between mb-6">
+          <!-- Botão Filtros (Mobile) -->
+          <button
+            (click)="toggleFilters()"
+            class="lg:hidden px-4 py-2 border-2 border-gray-900 text-gray-900 text-sm font-semibold tracking-wider uppercase flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filtros
+          </button>
+
+          <!-- Ordenação -->
+          <select
+            [(ngModel)]="sortBy"
+            aria-label="Ordenar produtos"
+            class="ml-auto px-4 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+          >
+            <option value="relevancia">Relevância</option>
+            <option value="menor-preco">Menor Preço</option>
+            <option value="maior-preco">Maior Preço</option>
+            <option value="novidades">Novidades</option>
+            <option value="mais-vendidos">Mais Vendidos</option>
+          </select>
+        </div>
+
+        <!-- Loading -->
+        @if (loading()) {
+          <div class="flex justify-center py-20">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        }
+
+        <!-- Error -->
+        @else if (error()) {
+          <div class="text-center py-20">
+            <p class="text-gray-600">{{ error() }}</p>
+          </div>
+        }
+
+        <!-- Produtos -->
+        @else if (produtosFiltrados().length > 0) {
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            @for (produto of produtosFiltrados(); track produto.id) {
+              <app-product-card
+                [produto]="produto"
+                (verDetalhes)="viewProduct($event)"
+                (pedirWhatsApp)="shareOnWhatsApp($event)"
+              />
+            }
+          </div>
+        }
+
+        <!-- Empty State -->
+        @else {
+          <div class="text-center py-20">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <span class="text-3xl">🔍</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum produto encontrado</h3>
+            <p class="text-gray-600 mb-4">Tente ajustar os filtros ou fazer uma nova busca</p>
+            <button
+              (click)="clearFilters()"
+              class="px-6 py-2 bg-gray-900 text-white text-sm tracking-wider uppercase"
+            >
+              Limpar Filtros
+            </button>
+          </div>
+        }
+      </main>
+    </div>
+  </div>
+
+  <!-- Drawer de Filtros (Mobile) -->
+  @if (showFilters()) {
+    <div class="fixed inset-0 z-50 lg:hidden">
+      <!-- Overlay -->
+      <div 
+        class="absolute inset-0 bg-black/50"
+        (click)="toggleFilters()"
+      ></div>
+
+      <!-- Drawer -->
+      <div class="absolute inset-y-0 left-0 w-80 max-w-full bg-white shadow-xl overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">Filtros</h2>
+            <button
+              (click)="toggleFilters()"
+              aria-label="Fechar filtros"
+              class="text-gray-600 hover:text-gray-900"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Categoria -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-900 mb-3">Categoria</label>
+            <select
+              [(ngModel)]="selectedCategory"
+              aria-label="Filtrar por categoria"
+              class="w-full px-3 py-2 border border-gray-300 text-sm"
+            >
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ getCategoryLabel(cat) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Material -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-900 mb-3">Material</label>
+            <select
+              [(ngModel)]="selectedMaterial"
+              aria-label="Filtrar por material"
+              class="w-full px-3 py-2 border border-gray-300 text-sm"
+            >
+              @for (mat of materials; track mat) {
+                <option [value]="mat">{{ getMaterialLabel(mat) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Faixa de Preço -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-900 mb-3">Faixa de Preço</label>
+            <div class="flex gap-2 items-center">
+              <input
+                type="number"
+                [(ngModel)]="priceMin"
+                placeholder="Min"
+                class="w-full px-3 py-2 border border-gray-300 text-sm"
+              />
+              <span class="text-gray-500">-</span>
+              <input
+                type="number"
+                [(ngModel)]="priceMax"
+                placeholder="Max"
+                class="w-full px-3 py-2 border border-gray-300 text-sm"
+              />
+            </div>
+          </div>
+
+          <!-- Botões -->
+          <div class="flex gap-3">
+            <button
+              (click)="clearFilters()"
+              class="flex-1 px-4 py-3 border-2 border-gray-900 text-gray-900 text-sm font-semibold tracking-wider uppercase"
+            >
+              Limpar
+            </button>
+            <button
+              (click)="toggleFilters()"
+              class="flex-1 px-4 py-3 bg-gray-900 text-white text-sm font-semibold tracking-wider uppercase"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

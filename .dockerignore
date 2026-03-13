@@ -1,0 +1,42 @@
+# Arquivos e diretórios do Node
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Build
+dist/
+.angular/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários
+*.tmp
+*.temp
+.tmp/
+
+# Logs
+logs/
+*.log
+
+# Arquivos de ambiente (NÃO commitar em produção)
+# .env
+# .env.local
+# .env.production
+
+# Coverage
+coverage/
+
+# Arquivos de deploy compilados
+*.zip
+vendara-production-*.zip

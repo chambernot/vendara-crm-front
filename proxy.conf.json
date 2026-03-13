@@ -1,0 +1,23 @@
+{
+  "/api": {
+    "target": "http://localhost:5000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "headers": {
+      "X-API-KEY": "dev_api_key_12345"
+    }
+  },
+  "/api/public": {
+    "target": "http://localhost:5000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api/public": "/public"
+    },
+    "headers": {
+      "X-API-KEY": "dev_api_key_12345"
+    }
+  }
+}

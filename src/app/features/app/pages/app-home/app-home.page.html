@@ -1,0 +1,72 @@
+<div class="min-h-screen p-6">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Bem-vindo ao Vendara! 💎</h1>
+          <p class="text-gray-600 mt-2">Seu ambiente está pronto para uso</p>
+        </div>
+        <button
+          (click)="logout()"
+          class="px-4 py-2 text-red-600 border border-red-600 rounded-lg font-semibold hover:bg-red-50 transition"
+        >
+          Sair
+        </button>
+      </div>
+
+      <!-- User Info -->
+      <div class="bg-purple-50 rounded-xl p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Suas informações</h2>
+        <div class="space-y-2 text-gray-700">
+          <p><strong>Email:</strong> {{ user?.email }}</p>
+          <p><strong>Nome:</strong> {{ user?.name }}</p>
+        </div>
+      </div>
+
+      <!-- Onboarding Data -->
+      <div *ngIf="onboardingData" class="bg-blue-50 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Configurações do negócio</h2>
+        <div class="space-y-2 text-gray-700">
+          <p><strong>Tipo:</strong> 
+            <span *ngIf="onboardingData.businessType === 'pf'">Pessoa Física</span>
+            <span *ngIf="onboardingData.businessType === 'mei'">MEI</span>
+            <span *ngIf="onboardingData.businessType === 'loja'">Loja</span>
+          </p>
+          <p><strong>Produtos:</strong> {{ onboardingData.products.join(', ') }}</p>
+          <p><strong>Objetivo:</strong> {{ onboardingData.objective }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl shadow-lg p-8 text-white">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold">Sistema pronto!</h2>
+          <p class="opacity-90">Autenticação e onboarding implementados</p>
+        </div>
+      </div>
+      
+      <div class="bg-white/10 rounded-lg p-4 mt-6">
+        <p class="text-sm font-medium mb-2">Funcionalidades ativas:</p>
+        <ul class="space-y-1 text-sm opacity-90">
+          <li>✓ Sistema de login com email</li>
+          <li>✓ Fluxo de onboarding em 3 etapas</li>
+          <li>✓ Guards de autenticação e onboarding</li>
+          <li>✓ Persistência em localStorage</li>
+          <li>✓ Layout responsivo com Tailwind</li>
+        </ul>
+      </div>
+
+      <p class="text-sm opacity-75 mt-6">
+        As features de negócio (dashboard, clientes, catálogo, vendas) serão implementadas nas próximas etapas.
+      </p>
+    </div>
+  </div>
+</div>

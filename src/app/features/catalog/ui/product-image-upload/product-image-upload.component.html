@@ -1,0 +1,35 @@
+<div class="image-upload-container">
+  <!-- Input de arquivo (aceita apenas imagens) -->
+  <input
+    type="file"
+    #fileInput
+    (change)="onFileSelected($event)"
+    accept="image/jpeg,image/png,image/webp"
+    [disabled]="uploading"
+    hidden
+  />
+
+  <!-- Botão de upload -->
+  <button
+    (click)="fileInput.click()"
+    [disabled]="uploading"
+    class="btn btn-primary btn-upload"
+    type="button"
+  >
+    <span *ngIf="!uploading">📷 Adicionar Imagem</span>
+    <span *ngIf="uploading">⏳ Enviando...</span>
+  </button>
+
+  <!-- Validação visual -->
+  <small class="text-muted ms-2">JPEG, PNG ou WebP — máximo 5MB</small>
+
+  <!-- Erro -->
+  <div *ngIf="errorMessage" class="alert alert-danger mt-2 mb-0">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Preview da imagem selecionada antes do upload -->
+  <div *ngIf="previewUrl" class="image-preview mt-2">
+    <img [src]="previewUrl" alt="Preview" class="preview-img" />
+  </div>
+</div>

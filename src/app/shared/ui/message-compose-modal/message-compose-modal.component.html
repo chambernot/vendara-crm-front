@@ -1,0 +1,117 @@
+@if (show) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center p-4">
+    <div
+      class="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">Nova Mensagem</h2>
+        <button
+          (click)="onClose()"
+          [disabled]="sending()"
+          title="Fechar"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          type="button"
+        >
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Template ID (optional) -->
+        <div>
+          <label for="template-id" class="block text-sm font-medium text-gray-700 mb-1">
+            Template ID <span class="text-gray-500 font-normal">(opcional)</span>
+          </label>
+          <input
+            type="text"
+            id="template-id"
+            placeholder="ex: welcome_message"
+            [value]="templateId()"
+            (input)="onTemplateIdChange($event)"
+            [disabled]="sending()"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            Use templates pré-aprovados para mensagens de marketing
+          </p>
+        </div>
+
+        <!-- Message Text -->
+        <div>
+          <label for="message-text" class="block text-sm font-medium text-gray-700 mb-1">
+            Mensagem <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="message-text"
+            rows="6"
+            placeholder="Digite sua mensagem..."
+            [value]="textPreview()"
+            (input)="onTextChange($event)"
+            [disabled]="sending()"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+          ></textarea>
+          <div class="flex items-center justify-between mt-1">
+            <p class="text-xs text-gray-500">
+              Caracteres: {{ textPreview().length }}
+            </p>
+            @if (textPreview().length > 1000) {
+              <p class="text-xs text-red-500">
+                Mensagem muito longa
+              </p>
+            }
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="flex gap-2">
+            <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="text-sm text-blue-800">
+              <p class="font-medium mb-1">Sobre o envio:</p>
+              <ul class="space-y-1 text-xs">
+                <li>• A mensagem será enviada via WhatsApp</li>
+                <li>• Status inicial: "Na fila"</li>
+                <li>• Você pode acompanhar o status na timeline</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200">
+        <button
+          (click)="onClose()"
+          [disabled]="sending()"
+          class="px-6 py-3 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
+        >
+          Cancelar
+        </button>
+        <button
+          (click)="onSend()"
+          [disabled]="sending() || !textPreview().trim() || textPreview().length > 1000"
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          type="button"
+        >
+          @if (sending()) {
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            <span>Enviando...</span>
+          } @else {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            <span>Enviar</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

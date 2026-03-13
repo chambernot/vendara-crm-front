@@ -1,0 +1,289 @@
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <!-- Header -->
+    <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+      <h2 class="text-xl font-bold text-gray-900">Registrar Venda</h2>
+      <button
+        (click)="onCancel()"
+        class="text-gray-400 hover:text-gray-600 transition-colors"
+        [disabled]="submitting()"
+        title="Fechar"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Form Content -->
+    <div class="p-6 space-y-6">
+      <!-- Erro geral -->
+      @if (errorMessage()) {
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <div class="flex-1">
+            <h3 class="text-sm font-semibold text-red-800 mb-1">Erro ao registrar venda</h3>
+            <p class="text-sm text-red-700">{{ errorMessage() }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- Cliente (opcional) -->
+      @if (!clientId) {
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Cliente (opcional)
+          </label>
+          
+          @if (selectedClient()) {
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">{{ selectedClient()!.name }}</p>
+                @if (selectedClient()!.whatsapp) {
+                  <p class="text-xs text-gray-600">{{ selectedClient()!.whatsapp }}</p>
+                }
+              </div>
+              <button
+                (click)="clearClient()"
+                class="text-red-600 hover:text-red-700 text-sm font-medium"
+                type="button"
+              >
+                Remover
+              </button>
+            </div>
+          } @else {
+            <div class="relative">
+              <input
+                type="text"
+                [(ngModel)]="clientSearchTerm"
+                (input)="searchClients()"
+                (focus)="searchClients()"
+                placeholder="Buscar cliente por nome..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              
+              @if (showClientSuggestions() && clientSuggestions().length > 0) {
+                <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  @for (client of clientSuggestions(); track client.id) {
+                    <button
+                      type="button"
+                      (click)="selectClient(client)"
+                      class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <p class="text-sm font-medium text-gray-900">{{ client.name }}</p>
+                      @if (client.whatsapp) {
+                        <p class="text-xs text-gray-600">{{ client.whatsapp }}</p>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Cliente
+          </label>
+          @if (selectedClient()) {
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">{{ selectedClient()!.name }}</p>
+                @if (selectedClient()!.whatsapp) {
+                  <p class="text-xs text-gray-600">{{ selectedClient()!.whatsapp }}</p>
+                }
+              </div>
+            </div>
+          } @else {
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p class="text-sm text-gray-600">Carregando cliente...</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Forma de Pagamento -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Forma de Pagamento *
+        </label>
+        <select
+          [(ngModel)]="paymentMethod"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          title="Forma de Pagamento"
+        >
+          @for (method of paymentMethods; track method) {
+            <option [value]="method">{{ paymentMethodLabels[method] }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Produtos -->
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <label class="block text-sm font-semibold text-gray-700">
+            Produtos da Venda *
+          </label>
+        </div>
+
+        <!-- Buscar Produto -->
+        <div class="relative mb-4">
+          <input
+            type="text"
+            [(ngModel)]="productSearchTerm"
+            (ngModelChange)="searchProducts()"
+            (focus)="searchProducts()"
+            placeholder="Buscar produto para adicionar..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          
+          @if (showProductSuggestions() && productSuggestions().length > 0) {
+            <div class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              @for (product of productSuggestions(); track product.id) {
+                <button
+                  type="button"
+                  (click)="selectProduct(product)"
+                  class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                  [class.opacity-60]="product.quantityAvailable <= 0"
+                >
+                  <div class="flex justify-between items-center">
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-gray-900">{{ product.name }}</p>
+                      <p class="text-xs" [class.text-red-600]="product.quantityAvailable <= 0" [class.text-gray-600]="product.quantityAvailable > 0">
+                        @if (product.quantityAvailable > 0) {
+                          <span>Estoque: {{ product.quantityAvailable }} | {{ formatCurrency(product.price) }}</span>
+                        } @else {
+                          <span class="font-medium">⚠️ Sem estoque | {{ formatCurrency(product.price) }}</span>
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Lista de Itens -->
+        <div class="space-y-3">
+          @for (item of items(); track item.id) {
+            @if (item.product) {
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex justify-between items-start mb-3">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-900">{{ item.product.name }}</h4>
+                    <p class="text-xs text-gray-600">Estoque disponível: {{ item.product.quantityAvailable }}</p>
+                    
+                    @if (isQuantityExceeded(item)) {
+                      <p class="text-xs text-red-600 font-medium mt-1">
+                        ⚠️ Quantidade excede o estoque disponível
+                      </p>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeItem(item.id)"
+                    class="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remover
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Quantidade</label>
+                    <input
+                      type="number"
+                      [value]="item.quantity"
+                      (change)="updateItemQuantity(item.id, $any($event.target).value)"
+                      min="1"
+                      [max]="getMaxQuantity(item.product)"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      [class.border-red-500]="isQuantityExceeded(item)"
+                      title="Quantidade"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Preço Unitário</label>
+                    <input
+                      type="number"
+                      [value]="item.unitPrice"
+                      (change)="updateItemPrice(item.id, $any($event.target).value)"
+                      min="0"
+                      step="0.01"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      title="Preço Unitário"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Subtotal</label>
+                    <div class="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-gray-900">
+                      {{ formatCurrency(item.subtotal) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+
+        @if (validItems().length === 0) {
+          <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 rounded-lg">
+            Nenhum produto adicionado. Use a busca acima para adicionar produtos.
+          </p>
+        }
+      </div>
+
+      <!-- Observações -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Observações (opcional)
+        </label>
+        <textarea
+          [(ngModel)]="notes"
+          rows="3"
+          placeholder="Adicione observações sobre esta venda..."
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          [disabled]="submitting()"
+        ></textarea>
+      </div>
+
+      <!-- Total -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex justify-between items-center">
+          <span class="text-lg font-semibold text-gray-900">Total da Venda:</span>
+          <span class="text-2xl font-bold text-blue-600">{{ formatCurrency(total()) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+        [disabled]="submitting()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        (click)="submitSale()"
+        [disabled]="!canSubmit()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        @if (submitting()) {
+          <div class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+          <span>Salvando...</span>
+        } @else {
+          <span>Salvar Venda</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
